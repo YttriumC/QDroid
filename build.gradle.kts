@@ -1,13 +1,17 @@
+import java.net.URI
+
 plugins {
     kotlin("jvm") version "2.0.20"
     application
 }
 
-group = "ng.i.sav.bot.qdroid"
+group = "ng.i.sav.qdroid"
 version = "0.0.1"
 
 repositories {
     mavenCentral()
+    maven { url = URI("https://repo.spring.io/milestone") }
+    maven { url = URI("https://repo.spring.io/snapshot") }
 }
 
 dependencies {
@@ -16,6 +20,10 @@ dependencies {
     implementation("org.springframework:spring-context:6.1.13")
     // https://mvnrepository.com/artifact/org.springframework/spring-websocket
     implementation("org.springframework:spring-websocket:6.1.13")
+    implementation("org.springframework.ai:spring-ai-openai:1.0.0-M2") {
+        exclude("org.springframework.boot", "*")
+        exclude("org.springframework.cloud", "*")
+    }
     // https://mvnrepository.com/artifact/jakarta.websocket/jakarta.websocket-client-api
     implementation("jakarta.websocket:jakarta.websocket-client-api:2.1.1")
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
