@@ -1,4 +1,4 @@
-package ng.i.sav.qdroid.client.lifecycle
+package ng.i.sav.qdroid.bot.lifecycle
 
 import ng.i.sav.qdroid.infra.client.BotLifecycle
 import ng.i.sav.qdroid.infra.client.GuildBot

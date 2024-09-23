@@ -18,8 +18,8 @@ interface AudioEventHandler : BotEventHandler<AudioAction>
 interface ForumThreadEventHandler : BotEventHandler<Thread>
 interface ForumPostEventHandler : BotEventHandler<Post>
 interface ForumReplyEventHandler : BotEventHandler<Reply>
-interface OpenForumEventHandler : BotEventHandler<ng.i.sav.qdroid.infra.model.event.ForumEvent>
-interface LiveChannelEventHandler : BotEventHandler<ng.i.sav.qdroid.infra.model.event.LiveChannelEvent>
+interface OpenForumEventHandler : BotEventHandler<ForumEvent>
+interface LiveChannelEventHandler : BotEventHandler<LiveChannelEvent>
 
 
 interface GuildCreateHandler : GuildEventHandler

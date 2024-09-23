@@ -1,4 +1,4 @@
-package ng.i.sav.qdroid.infra.config
+package ng.i.sav.qdroid.bot
 
 import org.springframework.beans.factory.annotation.Autowire
 import org.springframework.beans.factory.annotation.Configurable

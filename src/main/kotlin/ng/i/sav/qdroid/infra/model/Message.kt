@@ -234,23 +234,20 @@ data class MessageAudited(
  * |  < | &lt; |
  * | \> | &gt;|
  * */
-class EmbedContent {
-    companion object {
-        fun atUser(userId: String): String {
-            return "<@!$userId>"
-        }
-
-        fun atAll(): String {
-            return "@everyone"
-        }
-
-        fun channel(channelId: String): String {
-            return "<#$channelId>"
-        }
-
-        fun emoji(emojiId: Int): String {
-            return "<emoji:$emojiId>"
-        }
+object EmbedContent {
+    fun atUser(userId: String): String {
+        return "<qqbot-at-user id=\"$userId\" />"
     }
 
+    fun atAll(): String {
+        return "<qqbot-at-everyone />"
+    }
+
+    fun channel(channelId: String): String {
+        return "<#$channelId>"
+    }
+
+    fun emoji(emojiId: Int): String {
+        return "<emoji:$emojiId>"
+    }
 }

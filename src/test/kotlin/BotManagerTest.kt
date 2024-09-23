@@ -7,8 +7,9 @@ import ng.i.sav.qdroid.infra.config.WsClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import ng.i.sav.qdroid.client.event.Echo
-import ng.i.sav.qdroid.client.lifecycle.DefaultLifecycle
+import ng.i.sav.qdroid.bot.event.Echo
+import ng.i.sav.qdroid.bot.event.Status
+import ng.i.sav.qdroid.bot.lifecycle.DefaultLifecycle
 import ng.i.sav.qdroid.log.Slf4kt
 import org.slf4j.event.Level
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
@@ -44,7 +45,7 @@ fun main() {
                 objectMapper,
                 arrayListOf(DefaultLifecycle()),
                 BotEventDispatcher(
-                    arrayListOf(Echo()), objectMapper
+                    arrayListOf(Status()), objectMapper
                 ),
                 1
             )

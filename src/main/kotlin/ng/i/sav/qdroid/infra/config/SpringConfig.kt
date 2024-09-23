@@ -3,6 +3,7 @@ package ng.i.sav.qdroid.infra.config
 import ng.i.sav.qdroid.infra.client.Intents
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.annotation.PostConstruct
+import ng.i.sav.qdroid.bot.BotConfig
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,9 +18,6 @@ open class SpringConfig {
 
     @Autowired(required = false)
     private var wsClient: WebSocketClient? = null
-
-    @Autowired
-    private lateinit var botConfig: BotConfig
 
     @PostConstruct
     open fun init() {

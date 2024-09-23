@@ -70,6 +70,8 @@ class GuildBot(
     val username get() = user.username
     val bot get() = user.bot
     val state get() = _state
+    val startTime: LocalDateTime get() = if (this::_startTime.isInitialized) _startTime else LocalDateTime.MIN
+    private lateinit var _startTime: LocalDateTime
 
     init {
         if (Tools.anyBlank(appId, token)) {
@@ -91,6 +93,7 @@ class GuildBot(
      * 启动bot
      * */
     fun start() {
+        _startTime = LocalDateTime.now()
         val gatewayBot = getGatewayBot()
         this.wsURL = gatewayBot.url
         GlobalScope.launch {
