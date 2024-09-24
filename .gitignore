@@ -44,3 +44,4 @@ bin/
 /src/test/kotlin/default.yaml
 /src/test/resources/botApi.properties
 /.kotlin/
+/botApi.properties

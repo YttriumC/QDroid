@@ -1,6 +1,6 @@
 package ng.i.sav.qdroid.infra.config
 
-import ng.i.sav.qdroid.infra.client.GuildBot
+import ng.i.sav.qdroid.infra.client.QDroid
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.web.client.RestOperations
 import org.springframework.web.socket.WebSocketHttpHeaders
@@ -18,7 +18,7 @@ class WsClient(private var webSocketClient: WebSocketClient) {
         this.webSocketClient = webSocketClient
     }
 
-    fun startConnection(bot: GuildBot, uri: URI, headers: WebSocketHttpHeaders? = null) {
+    fun startConnection(bot: QDroid, uri: URI, headers: WebSocketHttpHeaders? = null) {
         webSocketClient.execute(bot.webSocketHandler, headers, uri)
     }
 

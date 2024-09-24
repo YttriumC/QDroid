@@ -31,13 +31,14 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.concurrent.Volatile
+import kotlin.coroutines.coroutineContext
 import kotlin.system.exitProcess
 
 /**
  *
  * @param intents [Intents]
  * */
-class GuildBot(
+class QDroid(
     private val appId: String,
     private val token: String,
     private val apiHost: URL,
@@ -102,9 +103,9 @@ class GuildBot(
             lock.withLock {
                 log.info("get websocket url: {}", gatewayBot.url)
                 log.debug("recommended shards: {}", gatewayBot.shards)
-                wsClient.startConnection(this@GuildBot, URI(wsURL))
+                wsClient.startConnection(this@QDroid, URI(wsURL))
                 lifecycle.forEach {
-                    runCatching { it.onStart(this@GuildBot) }.exceptionOrNull()
+                    runCatching { it.onStart(this@QDroid) }.exceptionOrNull()
                         ?.let { log.warn("Lifecycle onStart failed", it) }
                 }
                 delay((6_000 / gatewayBot.sessionStartLimit.maxConcurrency).toLong())
@@ -116,7 +117,7 @@ class GuildBot(
         log.info("bot start shutting down")
         _state = State.SHUTDOWN
         lifecycle.forEach {
-            runCatching { it.onShutdown(this@GuildBot) }.exceptionOrNull()?.let { log.warn("Bot difecycle shutdown") }
+            runCatching { it.onShutdown(this@QDroid) }.exceptionOrNull()?.let { log.warn("Bot difecycle shutdown") }
         }
         webSocketHandler.close()
     }
@@ -700,7 +701,7 @@ class GuildBot(
         when (payload.op) {
             OpCode.DISPATCH -> {
                 try {
-                    eventDispatcher.onEvent(this, msg.payload)
+                    eventDispatcher.onEvent(this, payload, msg.payload)
                 } catch (e: Exception) {
                     log.error("Handle message error", e)
                 }
@@ -712,7 +713,7 @@ class GuildBot(
             }
 
             OpCode.HEARTBEAT_ACK -> {
-                log.info("Received msg: {}", msg.payload)
+                log.debug("Received msg: {}", msg.payload)
             }
 
             OpCode.HTTP_CALLBACK_ACK -> TODO()
@@ -842,7 +843,7 @@ class GuildBot(
             if (_state != State.RESUME) _state =
                 State.HELLO
             this.session = session
-            this@GuildBot.session = session
+            this@QDroid.session = session
             log.info("WS Connection {} is established", session.uri)
         }
 
@@ -860,7 +861,7 @@ class GuildBot(
                         msgList.forEach {
                             append(it.payload)
                         }
-                        this@GuildBot.handleMessage(session, TextMessage(this))
+                        this@QDroid.handleMessage(session, TextMessage(this))
                         msgList.clear()
                     }
                 }
@@ -871,7 +872,7 @@ class GuildBot(
                             it as BinaryMessage
                             put(it.payload)
                         }
-                        this@GuildBot.handleMessage(session, BinaryMessage(this.asReadOnlyBuffer()))
+                        this@QDroid.handleMessage(session, BinaryMessage(this.asReadOnlyBuffer()))
                         msgList.clear()
                     }
                 }
@@ -900,13 +901,13 @@ class GuildBot(
                 4008 -> {
                     log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
                     _state = State.RESUME
-                    wsClient.startConnection(this@GuildBot, URI(wsURL))
+                    wsClient.startConnection(this@QDroid, URI(wsURL))
                 }
 
                 4009 -> {
                     log.warn("连接过期，请重连并执行 resume 进行重新连接")
                     _state = State.RESUME
-                    wsClient.startConnection(this@GuildBot, URI(wsURL))
+                    wsClient.startConnection(this@QDroid, URI(wsURL))
                 }
 
                 4001 -> log.error("无效的 opcode")
@@ -971,7 +972,7 @@ class GuildBot(
             stopHeartbeat("Bot shutdown")
             if (session.isOpen) session.close(CloseStatus.NORMAL)
             lifecycle.forEach {
-                it.onShutdown(this@GuildBot)
+                it.onShutdown(this@QDroid)
             }
         }
     }
@@ -997,7 +998,7 @@ class GuildBot(
     }
 
     companion object {
-        private val log = Slf4kt.getLogger(GuildBot::class.java)
+        private val log = Slf4kt.getLogger(QDroid::class.java)
         private val lock = Mutex()
     }
 }

@@ -7,6 +7,7 @@ import ng.i.sav.qdroid.infra.client.HttpRequestPool
 import ng.i.sav.qdroid.infra.client.Intents
 import ng.i.sav.qdroid.infra.config.RestClient
 import ng.i.sav.qdroid.infra.config.WsClient
+import ng.i.sav.qdroid.infra.util.Tools
 
 open class BotConfiguration(
     var appId: String,
@@ -20,6 +21,6 @@ open class BotConfiguration(
     var lifecycle: List<BotLifecycle>,
     var eventDispatcher: BotEventDispatcher,
     var totalShards: Int = 1,
-    var shardsRange: IntRange = IntRange(0, totalShards - 1),
+    var shardsRange: IntRange = 0..<totalShards,
     var isPrivateBot: Boolean = false,
 )

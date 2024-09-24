@@ -1,11 +1,12 @@
 package ng.i.sav.qdroid.bot.event
 
 import ng.i.sav.qdroid.infra.client.AtMessageCreateHandler
-import ng.i.sav.qdroid.infra.client.GuildBot
+import ng.i.sav.qdroid.infra.client.QDroid
 import ng.i.sav.qdroid.infra.model.Message
+import ng.i.sav.qdroid.infra.model.Payload
 
 class Echo : AtMessageCreateHandler {
-    override fun onEvent(bot: GuildBot, event: Message, type: String) {
+    override fun onEvent(bot: QDroid, event: Message,payload: Payload<Message>) {
         println(event.content)
         bot.postChannelsMessages(
             event.channelId,

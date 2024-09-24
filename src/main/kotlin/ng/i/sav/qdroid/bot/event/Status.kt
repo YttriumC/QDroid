@@ -2,15 +2,15 @@ package ng.i.sav.qdroid.bot.event
 
 import ng.i.sav.qdroid.bot.util.MessageUtils
 import ng.i.sav.qdroid.infra.client.AtMessageCreateHandler
-import ng.i.sav.qdroid.infra.client.GuildBot
+import ng.i.sav.qdroid.infra.client.QDroid
 import ng.i.sav.qdroid.infra.config.DateTimeFormat
 import ng.i.sav.qdroid.infra.model.Message
-import org.springframework.stereotype.Component
+import ng.i.sav.qdroid.infra.model.Payload
 import java.lang.management.ManagementFactory
 
 
 class Status : AtMessageCreateHandler {
-    override fun onEvent(bot: GuildBot, event: Message, type: String) {
+    override fun onEvent(bot: QDroid, event: Message, payload: Payload<Message>) {
         val msg = MessageUtils.removeMentions(event).trim()
         when {
             msg.startsWith("!status") || msg.startsWith("/status") -> {

@@ -1,16 +1,21 @@
 package ng.i.sav.qdroid.infra.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import ng.i.sav.qdroid.bot.config.ComponentConfiguration
 import ng.i.sav.qdroid.infra.model.Payload
 import ng.i.sav.qdroid.infra.util.toObj
 import ng.i.sav.qdroid.log.Slf4kt
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
 
 @Component
-class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private val objectMapper: ObjectMapper) {
-    fun onEvent(bot: GuildBot, event: String) {
+class BotEventDispatcher(
+    private val handlers: List<BotEventHandler<*>>,
+    components: ComponentConfiguration
+) {
+    private val objectMapper = components.objectMapper
+
+    fun onEvent(bot: QDroid, payload: Payload<*>, event: String) {
         log.info("Dispatcher msg: {}", event)
-        val payload = objectMapper.toObj<Payload<Any>>(event)
 
         when (Event.valueOf(payload.t!!)) {
             Event.GUILD_CREATE -> {
@@ -18,8 +23,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -28,8 +32,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildUpdateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -38,8 +41,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -48,8 +50,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ChannelCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -58,8 +59,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ChannelUpdateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -68,8 +68,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ChannelDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -78,8 +77,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildMemberAddHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -88,8 +86,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildMemberUpdateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -98,8 +95,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is GuildMemberRemoveHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -108,8 +104,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is AtMessageCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -123,8 +118,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is MessageReactionAddHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -133,8 +127,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is MessageReactionRemoveHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -143,8 +136,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is DirectMessageCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -158,8 +150,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumThreadCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -168,8 +159,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumThreadUpdateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -178,8 +168,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumThreadDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -188,8 +177,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumPostCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -198,8 +186,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumPostDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -208,8 +195,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumReplyCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -218,8 +204,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is OpenForumReplyDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -228,8 +213,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is AudioOrLiveChannelMemberEnterHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -238,8 +222,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is AudioOrLiveChannelMemberExitHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -251,8 +234,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is MessageAuditPassHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -261,8 +243,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is MessageAuditRejectHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -271,8 +252,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumThreadCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -281,8 +261,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumThreadUpdateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -291,8 +270,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumThreadDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -301,8 +279,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumPostCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -311,8 +288,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumPostDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -321,8 +297,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumReplyCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -331,8 +306,7 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumReplyDeleteHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
@@ -341,33 +315,32 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is ForumPublishAuditResultHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
 
             Event.AUDIO_START -> {
                 handlers.forEach { handler ->
-                    if (handler is AudioStartHandler) handler.onEvent(bot, objectMapper.toObj(payload.d!!), payload.t)
+                    if (handler is AudioStartHandler) handler.onEvent(bot, objectMapper.toObj(payload))
                 }
             }
 
             Event.AUDIO_FINISH -> {
                 handlers.forEach { handler ->
-                    if (handler is AudioFinishHandler) handler.onEvent(bot, objectMapper.toObj(payload.d!!), payload.t)
+                    if (handler is AudioFinishHandler) handler.onEvent(bot, objectMapper.toObj(payload))
                 }
             }
 
             Event.AUDIO_ON_MIC -> {
                 handlers.forEach { handler ->
-                    if (handler is AudioOnMicHandler) handler.onEvent(bot, objectMapper.toObj(payload.d!!), payload.t)
+                    if (handler is AudioOnMicHandler) handler.onEvent(bot, objectMapper.toObj(payload))
                 }
             }
 
             Event.AUDIO_OFF_MIC -> {
                 handlers.forEach { handler ->
-                    if (handler is AudioOffMicHandler) handler.onEvent(bot, objectMapper.toObj(payload.d!!), payload.t)
+                    if (handler is AudioOffMicHandler) handler.onEvent(bot, objectMapper.toObj(payload))
                 }
             }
 
@@ -375,13 +348,19 @@ class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private
                 handlers.forEach { handler ->
                     if (handler is AtMessageCreateHandler) handler.onEvent(
                         bot,
-                        objectMapper.toObj(payload.d!!),
-                        payload.t
+                        objectMapper.toObj(payload)
                     )
                 }
             }
 
-            Event.PUBLIC_MESSAGE_DELETE -> {}
+            Event.PUBLIC_MESSAGE_DELETE -> {
+                handlers.forEach { handler ->
+                    if (handler is PublicMessageDeleteHandler) handler.onEvent(
+                        bot,
+                        objectMapper.toObj(payload)
+                    )
+                }
+            }
         }
 
     }

@@ -40,19 +40,18 @@ class BotManager(
 
     val shards get() = shardsRange.last - shardsRange.first
 
-    private val botArray = ArrayList<GuildBot>(shards)
+    private val botArray = ArrayList<QDroid>(shards)
 
     init {
         if (shardsRange.isEmpty() || shardsRange.last >= totalShards) {
             throw IllegalArgumentException("wrong shards range")
         }
-        objectMapper.checkLocalDateTimeFormatter()
     }
 
-    fun startAsync(): ArrayList<GuildBot> {
+    fun startAsync(): ArrayList<QDroid> {
         log.info("start bot...")
         log.info(
-            "current shards: {}, from {} to {}",
+            "This instance has {} shards, from {} to {}",
             shards,
             shardsRange.first,
             shardsRange.last
@@ -61,7 +60,7 @@ class BotManager(
         if (!isPrivateBot) intents = intents - Intents.GUILD_MESSAGES - Intents.FORUMS_EVENT
         for (i in shardsRange) {
             log.debug("Create bot with appID: {}, appToken: {}, apiURL: {}, shard: {}", appId, token, apiHost, i)
-            GuildBot(
+            QDroid(
                 appId, token, URL(apiHost), restClient,
                 wsClient, httpRequestPool, intents, totalShards,
                 objectMapper, lifecycle, eventDispatcher, i
@@ -70,19 +69,8 @@ class BotManager(
             )
         }
 
-        botArray.forEach(GuildBot::start)
-        /* GlobalScope.launch {
-             delay(60_000)
-             repeat(Int.MAX_VALUE) {
-                 delay(5_000)
-                 log.debug("Health check")
-                 botArray.forEach {
-                     if (it.state != GuildBot.State.CONNECTED) {
-                         it.start()
-                     }
-                 }
-             }
-         }*/
+        botArray.forEach(QDroid::start)
+
         return botArray
     }
 

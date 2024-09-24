@@ -58,4 +58,6 @@ object ApiPath {
     const val DELETE_CHANNELS_THREADS = "/channels/{channel_id}/threads/{thread_id}"
     const val GET_GUILDS_API_PERMISSION = "/guilds/{guild_id}/api_permission"
     const val CREATE_GUILDS_API_PERMISSION_DEMAND = "/guilds/{guild_id}/api_permission/demand"
+    const val POST_USERS_MESSAGE = "/v2/users/{openid}/messages"
+    const val POST_GROUPS_MESSAGE = "/v2/groups/{group_openid}/messages"
 }

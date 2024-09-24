@@ -2,12 +2,24 @@ package ng.i.sav.qdroid.infra.client
 
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.model.event.*
+import ng.i.sav.qdroid.log.Slf4kt
 
 
 interface BotEventHandler<T> {
-    fun onEvent(bot: GuildBot, event: T, type: String)
+    fun onEvent(bot: QDroid, payload: Payload<T>) {
+        if (payload.d == null) {
+            log.warn("Event {} data is null", payload.t)
+        } else onEvent(bot, payload.d, payload)
+    }
+
+    fun onEvent(bot: QDroid, event: T, payload: Payload<T>)
+
+    companion object {
+        val log = Slf4kt.getLogger(BotEventHandler::class.java)
+    }
 }
 
+interface PublicMessageDeleteHandler : BotEventHandler<MessageEventHandler>
 interface GuildEventHandler : BotEventHandler<GuildEvent>
 interface ChannelEventHandler : BotEventHandler<ChannelEvent>
 interface MemberEventHandler : BotEventHandler<GuildMemberEvent>
@@ -20,7 +32,6 @@ interface ForumPostEventHandler : BotEventHandler<Post>
 interface ForumReplyEventHandler : BotEventHandler<Reply>
 interface OpenForumEventHandler : BotEventHandler<ForumEvent>
 interface LiveChannelEventHandler : BotEventHandler<LiveChannelEvent>
-
 
 interface GuildCreateHandler : GuildEventHandler
 interface GuildUpdateHandler : GuildEventHandler

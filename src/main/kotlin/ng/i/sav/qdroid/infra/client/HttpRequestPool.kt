@@ -1,10 +1,14 @@
 package ng.i.sav.qdroid.infra.client
 
 import jakarta.annotation.PostConstruct
+import kotlinx.coroutines.future.future
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
 import java.time.Duration
 import java.util.concurrent.*
+import kotlin.coroutines.resume
 
 class HttpRequestPool(
     private var maxConcurrent: Int = 1,
@@ -35,8 +39,17 @@ class HttpRequestPool(
         return future.get(timeout.seconds, TimeUnit.SECONDS)
     }
 
-    fun <T> runAsync(timeout: Duration = Duration.ofSeconds(60), block: Callable<T>): Future<T> {
-        return executorService.submit(block)
+    suspend fun <T> runAsync(timeout: Duration = Duration.ofSeconds(60), block: () -> T): T {
+        return suspendCancellableCoroutine { continuation ->
+            executorService.execute {
+                runBlocking {
+                    withTimeout(timeout.toMillis()) {
+                        val result = block()
+                        continuation.resume(result)
+                    }
+                }
+            }
+        }
     }
 
     fun <T> runAsync(

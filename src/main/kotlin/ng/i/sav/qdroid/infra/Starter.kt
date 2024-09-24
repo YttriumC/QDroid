@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Configuration
 @ComponentScan
 @Configuration
 open class Starter {
-    fun initSpring(vararg configurations: Class<*>) = runBlocking {
-        val applicationContext = AnnotationConfigApplicationContext(Starter::class.java, *configurations)
+    fun initSpring(vararg components: Class<*>) = runBlocking {
+        log.info("__qdroid__")
+        val applicationContext = AnnotationConfigApplicationContext(Starter::class.java, *components)
         val bot = applicationContext.getBean(BotManager::class.java)
         bot.startAsync()
-        log.info("__qdroid__")
         Runtime.getRuntime().addShutdownHook(Thread {
             bot.shutdown()
         })
