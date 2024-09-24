@@ -1,11 +1,11 @@
 package ng.i.sav.qdroid.infra.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import ng.i.sav.qdroid.bot.config.BotConfiguration
 import ng.i.sav.qdroid.infra.config.RestClient
 import ng.i.sav.qdroid.infra.config.WsClient
 import ng.i.sav.qdroid.infra.util.checkLocalDateTimeFormatter
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.net.URL
 
@@ -14,25 +14,26 @@ import java.net.URL
  * */
 @Component
 class BotManager(
-    @Value("")
-    private val appId: String,
-    @Value("")
-    private val token: String,
-    @Value("")
-    private val apiHost: String,
-    private val restClient: RestClient,
-    private val wsClient: WsClient,
-    private val httpRequestPool: HttpRequestPool,
-    private val intents: Array<Intents>,
-    private val objectMapper: ObjectMapper,
-    private val lifecycle: List<BotLifecycle>,
-    private val eventDispatcher: BotEventDispatcher,
-    @Value("")
-    private val totalShards: Int = 1,
-    private val shardsRange: IntRange = IntRange(0, totalShards - 1),
-    @Value("")
-    private val isPrivateBot: Boolean = false,
+    configuration: BotConfiguration
 ) {
+    private val appId: String = configuration.appId
+
+    private val token: String = configuration.token
+
+    private val apiHost: String = configuration.apiHost
+    private val restClient: RestClient = configuration.restClient
+    private val wsClient: WsClient = configuration.wsClient
+    private val httpRequestPool: HttpRequestPool = configuration.httpRequestPool
+    private val intents: Array<Intents> = configuration.intents
+    private val objectMapper: ObjectMapper = configuration.objectMapper
+    private val lifecycle: List<BotLifecycle> = configuration.lifecycle
+    private val eventDispatcher: BotEventDispatcher = configuration.eventDispatcher
+
+    private val totalShards: Int = configuration.totalShards
+    private val shardsRange: IntRange = configuration.shardsRange
+
+    private val isPrivateBot: Boolean = configuration.isPrivateBot
+
     /*
      * TODO: secondary constructor for [ng.i.sav.bot.qdroid.config.BotConfig]
      * */
@@ -61,18 +62,9 @@ class BotManager(
         for (i in shardsRange) {
             log.debug("Create bot with appID: {}, appToken: {}, apiURL: {}, shard: {}", appId, token, apiHost, i)
             GuildBot(
-                appId,
-                token,
-                URL(apiHost),
-                restClient,
-                wsClient,
-                httpRequestPool,
-                intents,
-                totalShards,
-                objectMapper,
-                lifecycle,
-                eventDispatcher,
-                i
+                appId, token, URL(apiHost), restClient,
+                wsClient, httpRequestPool, intents, totalShards,
+                objectMapper, lifecycle, eventDispatcher, i
             ).let(
                 botArray::add
             )
@@ -96,7 +88,7 @@ class BotManager(
 
     fun shutdown() {
         botArray.forEach {
-
+            it.shutdown()
         }
     }
 

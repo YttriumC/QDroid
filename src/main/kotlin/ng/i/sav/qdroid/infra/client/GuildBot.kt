@@ -73,6 +73,8 @@ class GuildBot(
     val startTime: LocalDateTime get() = if (this::_startTime.isInitialized) _startTime else LocalDateTime.MIN
     private lateinit var _startTime: LocalDateTime
 
+    val webSocketHandler: BotWebSocketHandler = BotWebSocketHandler()
+
     init {
         if (Tools.anyBlank(appId, token)) {
             throw IllegalArgumentException("appId or appToken is empty")
@@ -108,6 +110,15 @@ class GuildBot(
                 delay((6_000 / gatewayBot.sessionStartLimit.maxConcurrency).toLong())
             }
         }
+    }
+
+    fun shutdown() {
+        log.info("bot start shutting down")
+        _state = State.SHUTDOWN
+        lifecycle.forEach {
+            runCatching { it.onShutdown(this@GuildBot) }.exceptionOrNull()?.let { log.warn("Bot difecycle shutdown") }
+        }
+        webSocketHandler.close()
     }
 
     private fun throwAtLeastOne(): Nothing {

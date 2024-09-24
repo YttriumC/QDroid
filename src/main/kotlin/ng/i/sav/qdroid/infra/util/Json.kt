@@ -16,7 +16,7 @@ inline fun <reified T> ObjectMapper.toObj(any: Any): T {
 
 fun ObjectMapper.checkLocalDateTimeFormatter() {
     try {
-        this.toObj<LocalDateTime>("\"2023-05-22T16:38:04+08:00\"")
+        this.toObj<LocalDateTime>("\"2023-05-22T16:38:04\"")
     } catch (_: Exception) {
         val module = SimpleModule("databind#3110", )
         /*  val deserializer = object : JsonDeserializer<LocalDateTime>() {
@@ -30,9 +30,9 @@ fun ObjectMapper.checkLocalDateTimeFormatter() {
 
         module.addDeserializer(
             LocalDateTime::class.java,
-            object : LocalDateTimeDeserializer(DateTimeFormatter.ISO_OFFSET_DATE_TIME) {})
+            object : LocalDateTimeDeserializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME) {})
         module.addSerializer(LocalDateTime::class.java,
-            object : LocalDateTimeSerializer(DateTimeFormatter.ISO_OFFSET_DATE_TIME) {})
+            object : LocalDateTimeSerializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME) {})
         registerModule(module)
     }
 /*    try {

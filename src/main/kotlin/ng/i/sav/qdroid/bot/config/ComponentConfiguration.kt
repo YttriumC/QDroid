@@ -1,23 +1,30 @@
-package ng.i.sav.qdroid.infra.config
+package ng.i.sav.qdroid.bot.config
 
-import ng.i.sav.qdroid.infra.client.Intents
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import jakarta.annotation.PostConstruct
-import ng.i.sav.qdroid.bot.BotConfig
+import ng.i.sav.qdroid.infra.client.HttpRequestPool
+import ng.i.sav.qdroid.infra.client.Intents
+import ng.i.sav.qdroid.infra.config.RestClient
+import ng.i.sav.qdroid.infra.config.WsClient
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.socket.client.WebSocketClient
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import java.util.concurrent.ThreadFactory
 
-@Configuration
-open class SpringConfig {
+open class ComponentConfiguration(
     @Autowired(required = false)
-    private var restTemplate: RestTemplate? = null
-
+    private var restTemplate: RestTemplate? = null,
     @Autowired(required = false)
-    private var wsClient: WebSocketClient? = null
+    private var wsClient: WebSocketClient? = null,
+    @Autowired(required = false)
+    private var objectMapper: ObjectMapper? = null,
+    @Autowired(required = false)
+    private var threadFactory: ThreadFactory? = null
+) {
 
     @PostConstruct
     open fun init() {
@@ -42,7 +49,10 @@ open class SpringConfig {
 
     @Bean
     open fun objectMapper(): ObjectMapper {
-        return ObjectMapper()
+        return if (objectMapper == null) ObjectMapper().apply {
+            this.registerModule(JavaTimeModule())
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        } else objectMapper!!
     }
 
     @Bean
@@ -52,6 +62,11 @@ open class SpringConfig {
 
     @Bean
     open fun intents(): Array<Intents> {
-        return arrayOf()
+        return Intents.allPublicMessages()
+    }
+
+    @Bean
+    open fun httpRequestPool(): HttpRequestPool {
+        return HttpRequestPool(1, threadFactory)
     }
 }

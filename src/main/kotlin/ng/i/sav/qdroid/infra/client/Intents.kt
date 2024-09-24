@@ -172,7 +172,7 @@ enum class Intents(val value: Int) {
             return entries.toTypedArray()
         }
 
-        fun allPublicMessage(): Array<Intents> {
+        fun allPublicMessages(): Array<Intents> {
             return entries.filter {
                 when (it) {
                     GUILD_MESSAGES,FORUMS_EVENT  -> false

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class BotEventDispatcher(private val handlers: List<BotEventHandler<*>>, private val objectMapper: ObjectMapper) {
-    fun onEvent(bot: ng.i.sav.qdroid.infra.client.GuildBot, event: String) {
+    fun onEvent(bot: GuildBot, event: String) {
         log.info("Dispatcher msg: {}", event)
         val payload = objectMapper.toObj<Payload<Any>>(event)
 

@@ -2,24 +2,16 @@ package ng.i.sav.qdroid.infra.client
 
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.util.concurrent.*
 
-@Component
-class HttpRequestPool {
-    private lateinit var executorService: ExecutorService
-
+class HttpRequestPool(
+    private var maxConcurrent: Int = 1,
     @Autowired(required = false)
     private var threadFactory: ThreadFactory? = null
-
-    @Value("")
-    private var maxConcurrent: Int = 1
-
-    fun setMaxConcurrent(maxConcurrent: Int) {
-        this.maxConcurrent = maxConcurrent
-    }
+) {
+    private lateinit var executorService: ExecutorService
 
     fun getExecutorService(): ExecutorService = executorService
 
