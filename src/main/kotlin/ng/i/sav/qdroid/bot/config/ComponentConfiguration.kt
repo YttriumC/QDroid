@@ -1,5 +1,6 @@
 package ng.i.sav.qdroid.bot.config
 
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
@@ -7,29 +8,18 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer
 import jakarta.annotation.PostConstruct
-import ng.i.sav.qdroid.bot.event.Status
-import ng.i.sav.qdroid.bot.lifecycle.DefaultLifecycle
-import ng.i.sav.qdroid.infra.client.BotEventDispatcher
-import ng.i.sav.qdroid.infra.client.BotManager
 import ng.i.sav.qdroid.infra.client.HttpRequestPool
 import ng.i.sav.qdroid.infra.client.Intents
 import ng.i.sav.qdroid.infra.config.RestClient
 import ng.i.sav.qdroid.infra.config.WsClient
-import ng.i.sav.qdroid.log.Slf4kt
-import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.socket.client.WebSocketClient
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
-import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.util.*
 import java.util.concurrent.ThreadFactory
 
 @Configuration
@@ -46,6 +36,7 @@ open class ComponentConfiguration(
     val objectMapper = ObjectMapper().apply {
         this.registerModule(JavaTimeModule())
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
         val module = SimpleModule("databind#310")
 
         module.addDeserializer(
@@ -80,7 +71,7 @@ open class ComponentConfiguration(
 
     @Bean
     open fun intents(): Array<Intents> {
-        return Intents.allPublicMessages()
+        return Intents.defaultPublicIntents()
     }
 
     @Bean

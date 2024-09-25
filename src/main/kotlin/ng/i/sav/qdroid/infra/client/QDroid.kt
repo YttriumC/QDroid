@@ -48,7 +48,7 @@ class QDroid(
     private val intents: Int,
     private val totalShards: Int,
     private val json: ObjectMapper,
-    private val lifecycle: List<BotLifecycle>,
+    private val lifecycle: List<BotLifecycle>, //TODO
     private val eventDispatcher: BotEventDispatcher,
     private val currentShard: Int = 0
 ) : BotApi {
@@ -609,12 +609,10 @@ class QDroid(
     private fun WebSocketSession.startHeartbeat() {
         stopHeartbeat("New connection established")
         heartbeatJob = GlobalScope.launch {
-            // repeat()
-            repeat(Int.MAX_VALUE) {
+            while (true) {
                 delay((heartbeatTimeoutMillis - 10_000).coerceAtLeast(10_000))
                 sendText(OpCode.HEARTBEAT)
-            }/*while (true) {
-            }*/
+            }
         }
     }
 
@@ -628,13 +626,13 @@ class QDroid(
 
     private fun authenticationStage(session: WebSocketSession, message: WebSocketMessage<*>) {
         val msg = message.payload.toString()
-        msg.toObj<Any>().let { payload ->
+        json.readValue(msg, Payload::class.java).let { payload ->
             when (payload.op) {
                 OpCode.DISPATCH -> {
                     payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
                     payload.t?.let {
                         if (it == "READY") {
-                            val readyEvent = json.toObj<ReadyEvent>(payload.d!!)
+                            val readyEvent = payload.d!! as ReadyEvent
                             user = readyEvent.user
                             sessionId = readyEvent.sessionId
                             log.info(
@@ -679,7 +677,7 @@ class QDroid(
                             val readyEvent = json.toObj<ReadyEvent>(payload.d!!)
                             user = readyEvent.user
                             sessionId = readyEvent.sessionId
-                            log.info("Bot connected: session id: {}, {}", sessionId, user)
+                            log.info("Bot connected: session id: {}, user: {}", sessionId, user)
                         }
                     }
                     _state = State.CONNECTED
@@ -697,7 +695,7 @@ class QDroid(
     }
 
     private fun handleTextMsg(session: WebSocketSession, msg: TextMessage) {
-        val payload = msg.toObj<Any>()
+        val payload = json.readValue(msg.payload, Payload::class.java)
         when (payload.op) {
             OpCode.DISPATCH -> {
                 try {
@@ -710,10 +708,11 @@ class QDroid(
             OpCode.RECONNECT -> {
                 _state = State.RESUME
                 stopHeartbeat("Resume")
+                log.info("Received RECONNECT: {}", msg.payload)
             }
 
             OpCode.HEARTBEAT_ACK -> {
-                log.debug("Received msg: {}", msg.payload)
+                log.debug("Received HEARTBEAT_ACK: {}", msg.payload)
             }
 
             OpCode.HTTP_CALLBACK_ACK -> TODO()
@@ -861,6 +860,7 @@ class QDroid(
                         msgList.forEach {
                             append(it.payload)
                         }
+                        log.debug("Websocket received TextMessage: {}", this)
                         this@QDroid.handleMessage(session, TextMessage(this))
                         msgList.clear()
                     }
@@ -898,18 +898,6 @@ class QDroid(
             if (_state == State.SHUTDOWN) return
             stopHeartbeat("Connection closed: $closeStatus")
             when (closeStatus.code) {
-                4008 -> {
-                    log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
-                    _state = State.RESUME
-                    wsClient.startConnection(this@QDroid, URI(wsURL))
-                }
-
-                4009 -> {
-                    log.warn("连接过期，请重连并执行 resume 进行重新连接")
-                    _state = State.RESUME
-                    wsClient.startConnection(this@QDroid, URI(wsURL))
-                }
-
                 4001 -> log.error("无效的 opcode")
                 4002 -> log.error("无效的 payload")
                 4006 -> {
@@ -920,6 +908,18 @@ class QDroid(
                 4007 -> {
                     log.error("seq 错误")
                     _state = State.STANDBY
+                }
+
+                4008 -> {
+                    log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
+                    _state = State.RESUME
+                    wsClient.startConnection(this@QDroid, URI(wsURL))
+                }
+
+                4009 -> {
+                    log.warn("连接过期，请重连并执行 resume 进行重新连接")
+                    _state = State.RESUME
+                    wsClient.startConnection(this@QDroid, URI(wsURL))
                 }
 
                 4010 -> {
@@ -958,7 +958,7 @@ class QDroid(
                 }
 
                 else -> {
-                    log.warn("内部错误，请重连")
+                    log.warn("内部错误，正在重连")
                     _state = State.STANDBY
                     start()
                 }

@@ -32,5 +32,9 @@ data class MessageInfo(
     @JsonProperty("guild_id")
     val guildId: String,
     @JsonProperty("id")
-    val id: String
+    val id: String,
+    @JsonProperty("direct_message")
+    val directMessage: Boolean?,
+    @JsonProperty("src_guild_id")
+    val srcGuildId: String
 )

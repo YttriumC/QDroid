@@ -22,6 +22,6 @@ open class Starter {
     }
 
     companion object {
-        val log = Slf4kt.getLogger(Starter::class.java)
+        private val log = Slf4kt.getLogger(Starter::class.java)
     }
 }

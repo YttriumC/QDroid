@@ -7,12 +7,9 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer
 import ng.i.sav.qdroid.log.Slf4kt
 import java.time.LocalDateTime
-import java.time.chrono.IsoChronology
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.time.format.ResolverStyle
 
-private val log=Slf4kt.getLogger("ng.i.sav.qdroid.infra.util.JsonKt")
+private val log = Slf4kt.getLogger("ng.i.sav.qdroid.infra.util.JsonKt")
 inline fun <reified T> ObjectMapper.toObj(any: Any): T {
     if (any is CharSequence)
         return readValue(any.toString(), object : TypeReference<T>() {})
@@ -27,20 +24,12 @@ fun ObjectMapper.checkLocalDateTimeFormatter() {
         val module = SimpleModule("databind#3110")
         module.addDeserializer(
             LocalDateTime::class.java,
-            object : LocalDateTimeDeserializer(
-                DateTimeFormatterBuilder()
-                    .parseCaseInsensitive()
-                    .append(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                    .parseLenient()
-                    .appendOffsetId()
-                    .toFormatter()) {})
-        module.addSerializer(LocalDateTime::class.java,
-            object : LocalDateTimeSerializer(  DateTimeFormatterBuilder()
-                .parseCaseInsensitive()
-                .append(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                .parseLenient()
-                .appendOffsetId()
-                .toFormatter()) {})
+            LocalDateTimeDeserializer(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        )
+        module.addSerializer(
+            LocalDateTime::class.java,
+            LocalDateTimeSerializer(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        )
         registerModule(module)
         this.toObj<LocalDateTime>("\"2024-09-24T16:39:42+08:00\"")
     }

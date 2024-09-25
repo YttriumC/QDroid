@@ -113,13 +113,27 @@ enum class Intents(val value: Int) {
      * - OPEN_FORUM_REPLY_CREATE      // 当用户回复评论时
      * - OPEN_FORUM_REPLY_DELETE      // 当用户删除评论时
      * */
-    OPEN_FORUMS_EVENT(1 shl 18),
+//    OPEN_FORUMS_EVENT(1 shl 18),
 
     /**
      * - AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER  // 当用户进入音视频/直播子频道
      * - AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT   // 当用户离开音视频/直播子频道
      * */
-    AUDIO_OR_LIVE_CHANNEL_MEMBER(1 shl 19),
+//    AUDIO_OR_LIVE_CHANNEL_MEMBER(1 shl 19),
+
+    /**
+     * - C2C_MESSAGE_CREATE      // 用户单聊发消息给机器人时候
+     * - FRIEND_ADD              // 用户添加使用机器人
+     * - FRIEND_DEL              // 用户删除机器人
+     * - C2C_MSG_REJECT          // 用户在机器人资料卡手动关闭"主动消息"推送
+     * - C2C_MSG_RECEIVE         // 用户在机器人资料卡手动开启"主动消息"推送开关
+     * - GROUP_AT_MESSAGE_CREATE // 用户在群里@机器人时收到的消息
+     * - GROUP_ADD_ROBOT         // 机器人被添加到群聊
+     * - GROUP_DEL_ROBOT         // 机器人被移出群聊
+     * - GROUP_MSG_REJECT        // 群管理员主动在机器人资料页操作关闭通知
+     * - GROUP_MSG_RECEIVE       // 群管理员主动在机器人资料页操作开启通知
+     * */
+    GROUP_AND_C2C_EVENT(1 shl 25),
 
     /**
      * - INTERACTION_CREATE     // 互动事件创建时
@@ -168,17 +182,12 @@ enum class Intents(val value: Int) {
     }
 
     companion object {
-        fun allPrivateMessage(): Array<Intents> {
-            return entries.toTypedArray()
+        fun defaultPrivateIntents(): Array<Intents> {
+            return arrayOf(GUILDS, PUBLIC_GUILD_MESSAGES, GUILD_MEMBERS, GUILD_MESSAGES, FORUMS_EVENT)
         }
 
-        fun allPublicMessages(): Array<Intents> {
-            return entries.filter {
-                when (it) {
-                    GUILD_MESSAGES,FORUMS_EVENT  -> false
-                   else ->true
-                }
-            }.toTypedArray()
+        fun defaultPublicIntents(): Array<Intents> {
+            return arrayOf(GUILDS, PUBLIC_GUILD_MESSAGES, GUILD_MEMBERS)
         }
     }
 }

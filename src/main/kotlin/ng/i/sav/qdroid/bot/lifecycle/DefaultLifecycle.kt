@@ -22,7 +22,7 @@ class DefaultLifecycle : BotLifecycle() {
     }
 
     companion object {
-        val log = Slf4kt.getLogger(DefaultLifecycle::class.java)
+        private val log = Slf4kt.getLogger(DefaultLifecycle::class.java)
     }
 }
 

@@ -1,6 +1,7 @@
 package ng.i.sav.qdroid.infra.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import ng.i.sav.qdroid.infra.client.QDroid
 import java.time.LocalDateTime
 
 /**
@@ -58,6 +59,12 @@ data class Message(
     @JsonProperty("src_guild_id")
     val srcGuildId: String?,
 )
+
+fun Message.sendText(bot: QDroid, content: String) {
+    bot.postChannelsMessages(
+        channelId, msgId = id, content = content
+    )
+}
 
 /**
  * @property title    string	标题

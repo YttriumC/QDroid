@@ -3,12 +3,13 @@ package ng.i.sav.qdroid.infra.model
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.DeserializationContext
-import com.fasterxml.jackson.databind.JsonDeserializer
-import com.fasterxml.jackson.databind.JsonSerializer
-import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.jsontype.*
+import ng.i.sav.qdroid.infra.client.Event
+import java.io.IOException
+
 
 /**
  * @property url    String    WebSocket 的连接地址
@@ -53,16 +54,15 @@ data class SessionStartLimit(
 
 /*@JsonSubTypes(
     JsonSubTypes.Type(Op10Hello::class, name = "10")
+)* @JsonTypeInfo(
+    use = Id.NAME,
+    include = As.PROPERTY,
+    property = "op"
 )*/
-
+@JsonDeserialize(using = Payload.PayloadDeserializer::class)
 data class Payload<T>(
     @JsonProperty("op")
     val op: OpCode,
-    /*    @JsonTypeInfo(
-            use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.PROPERTY,
-            property = "op"
-        )*/
     @JsonProperty("d")
     val d: T?,
     @JsonProperty("s")
@@ -77,10 +77,39 @@ data class Payload<T>(
         fun <T> with(opCode: OpCode, d: T? = null, s: Int? = null, t: String? = null): Payload<T> {
             return Payload(opCode, d, s, t)
         }
+
+        val OP_TYPE_MAP = mapOf(
+            OpCode.RESUME to Op6Resume::class.java,
+            OpCode.HELLO to Op10Hello::class.java,
+        )
+
+//        val EVENT_TYPE_MAP = mapOf(*Event.entries.map { it.name to it.type }.toTypedArray())
     }
 
     override fun toString(): String {
         return "Payload(op=$op, d=$d, s=$s, t=$t${id?.let { ", id=$id" } ?: ""})"
+    }
+
+    class PayloadDeserializer : JsonDeserializer<Payload<*>>() {
+        @Throws(IOException::class)
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Payload<*> {
+            val rootNode = ctxt.readTree(p)
+            val op = rootNode["op"].asInt().let { op -> OpCode.entries.find { it.code == op } ?: OpCode.UNKNOWN }
+            val t = rootNode["t"]?.asText()
+            val d = rootNode["d"]
+            val s = rootNode["s"]?.asInt()
+            val id = rootNode["id"]?.asText()
+            if (op == OpCode.DISPATCH && Event.entries.contains(Event.valueOf(t ?: ""))) {
+                return Payload(
+                    op, Event.entries.find { it.name == t }?.type?.let { ctxt.readTreeAsValue(d, it) },
+                    s, t, id
+                )
+            }
+            if (OP_TYPE_MAP.contains(op)) {
+                return Payload(op, ctxt.readTreeAsValue(d, OP_TYPE_MAP[op]), s, t, id)
+            }
+            return Payload(op, d, s, t, id)
+        }
     }
 }
 
