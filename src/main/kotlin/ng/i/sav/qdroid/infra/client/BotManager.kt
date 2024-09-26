@@ -34,9 +34,6 @@ class BotManager(
 
     private val isPrivateBot: Boolean = configuration.isPrivateBot
 
-    /*
-     * TODO: secondary constructor for [ng.i.sav.bot.qdroid.config.BotConfig]
-     * */
 
     val shards get() = shardsRange.last - shardsRange.first
 

@@ -3,6 +3,16 @@
 A client for qq guild bot. 一个QQ频道机器人接口的kotlin实现.
 基于[QQ官方机器人文档](https://bot.q.qq.com/wiki/)开发, 使用kotlin语言
 
+## 功能
+
+### 已实现
+- 实现大部分消息类型的解析
+- 实现指令封装
+### 待开发
+- 接入有趣的API
+- TODOs
+- 协程优化
+
 ## 开发
 
 使用prompt加速开发, 修改 `待转换内容：`后的内容即可
