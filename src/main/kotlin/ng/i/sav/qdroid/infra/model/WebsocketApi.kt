@@ -68,13 +68,13 @@ data class Payload<T>(
     @JsonProperty("s")
     val s: Int?,
     @JsonProperty("t")
-    val t: String? = null,
+    val t: Event? = null,
     @JsonProperty("id")
     val id: String? = null,
 ) {
 
     companion object {
-        fun <T> with(opCode: OpCode, d: T? = null, s: Int? = null, t: String? = null): Payload<T> {
+        fun <T> with(opCode: OpCode, d: T? = null, s: Int? = null, t: Event?): Payload<T> {
             return Payload(opCode, d, s, t)
         }
 
@@ -95,13 +95,13 @@ data class Payload<T>(
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Payload<*> {
             val rootNode = ctxt.readTree(p)
             val op = rootNode["op"].asInt().let { op -> OpCode.entries.find { it.code == op } ?: OpCode.UNKNOWN }
-            val t = rootNode["t"]?.asText()
+            val t = rootNode["t"]?.asText()?.let { Event.valueOf(it) }
             val d = rootNode["d"]
             val s = rootNode["s"]?.asInt()
             val id = rootNode["id"]?.asText()
-            if (op == OpCode.DISPATCH && Event.entries.contains(Event.valueOf(t ?: ""))) {
+            if (op == OpCode.DISPATCH && Event.entries.contains(t)) {
                 return Payload(
-                    op, Event.entries.find { it.name == t }?.type?.let { ctxt.readTreeAsValue(d, it) },
+                    op, t?.type?.let { ctxt.readTreeAsValue(d, it) },
                     s, t, id
                 )
             }

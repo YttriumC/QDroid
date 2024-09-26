@@ -31,7 +31,6 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.concurrent.Volatile
-import kotlin.coroutines.coroutineContext
 import kotlin.system.exitProcess
 
 /**
@@ -631,7 +630,7 @@ class QDroid(
                 OpCode.DISPATCH -> {
                     payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
                     payload.t?.let {
-                        if (it == "READY") {
+                        if (it == Event.READY) {
                             val readyEvent = payload.d!! as ReadyEvent
                             user = readyEvent.user
                             sessionId = readyEvent.sessionId
@@ -673,7 +672,7 @@ class QDroid(
                 OpCode.DISPATCH -> {
                     payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
                     payload.t?.let {
-                        if (it == "READY") {
+                        if (it == Event.READY) {
                             val readyEvent = json.toObj<ReadyEvent>(payload.d!!)
                             user = readyEvent.user
                             sessionId = readyEvent.sessionId
@@ -986,7 +985,7 @@ class QDroid(
         }
     }
 
-    private fun WebSocketSession.sendText(opCode: OpCode, d: Any? = null, t: String? = null) {
+    private fun WebSocketSession.sendText(opCode: OpCode, d: Any? = null, t: Event? = null) {
         this.sendMessage(TextMessage(json.writeValueAsString(Payload.with(opCode, d, wsMsgSeq, t))))
     }
 

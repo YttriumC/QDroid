@@ -12,6 +12,6 @@ open class Configurer
 private val log = Slf4kt.getLogger("BotManagerTestKt")
 fun main() {
 
-    Slf4kt.setLevel(Level.DEBUG)
+//    Slf4kt.setLevel(Level.DEBUG)
     Starter().initSpring(BotConfigurer::class.java, Configurer::class.java, CustomConfig::class.java)
 }

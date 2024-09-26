@@ -1,15 +1,16 @@
 package ng.i.sav.qdroid.infra.client
 
-import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.annotation.PostConstruct
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.model.event.*
 import ng.i.sav.qdroid.log.Slf4kt
 
 
 interface BotEventHandler<T> {
-    val acceptEvents get() = Event.entries.toTypedArray()
-    fun onEvent(bot: QDroid, payload: Payload<*>, objectMapper: ObjectMapper) {
+    val acceptEvents get() = arrayOf<Event>()
+
+    fun onEvent(bot: QDroid, payload: Payload<*>) {
         if (payload.d == null) {
             log.warn("Event {} data is null", payload.t)
         } else
@@ -18,6 +19,11 @@ interface BotEventHandler<T> {
     }
 
     fun onEvent(bot: QDroid, event: T, payload: Payload<T>)
+
+    @PostConstruct
+    fun checkAcceptEvent() {
+        if (acceptEvents.distinctBy { it.type }.size > 1) throw IllegalStateException("acceptEvents type must be unique")
+    }
 
     companion object {
         private val log = Slf4kt.getLogger(BotEventHandler::class.java)

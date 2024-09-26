@@ -1,13 +1,23 @@
 package ng.i.sav.qdroid.infra.client
 
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.model.event.*
 
 /**
  * [Payload.t] 事件类型与对应实体类型关系
  * */
+@JsonSerialize(using = Event.Serializer::class)
+@JsonDeserialize(using = Event.Deserializer::class)
 enum class Event(val desc: String, val type: Class<*>) {
-    READY("", ReadyEvent::class.java),
+    READY("READY event", ReadyEvent::class.java),
 
 
     GUILD_CREATE("当机器人加入新guild时", GuildEvent::class.java),
@@ -65,6 +75,20 @@ enum class Event(val desc: String, val type: Class<*>) {
 
     AT_MESSAGE_CREATE("当收到@机器人的消息时", Message::class.java),
     PUBLIC_MESSAGE_DELETE("当频道的消息被删除时", MessageDeleteEvent::class.java),
+    ;
 
 
+    class Deserializer : JsonDeserializer<Event>() {
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Event {
+            val i = p.valueAsString
+            return Event.valueOf(i)
+        }
+
+    }
+
+    class Serializer : JsonSerializer<Event>() {
+        override fun serialize(value: Event, gen: JsonGenerator, serializers: SerializerProvider?) {
+            gen.writeString(value.name)
+        }
+    }
 }

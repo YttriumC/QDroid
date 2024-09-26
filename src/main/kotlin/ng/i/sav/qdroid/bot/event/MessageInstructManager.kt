@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 @Component
 class MessageInstructManager(
     private val messageInstructions: List<MessageInstruction>,
-    private val messageInterceptor: MessageInterceptor
+    private val messageInterceptorManager: MessageInterceptorManager
 ) :
     MessageEventHandler {
     private val executorMap: Map<String, List<MessageInstruction>> =
@@ -20,15 +20,24 @@ class MessageInstructManager(
             .groupByTo(mutableMapOf(), { it.first }, { it.second })
     private val instructionSet = executorMap.keys
     override fun onEvent(bot: QDroid, event: Message, payload: Payload<Message>) {
+        if (messageInterceptorManager.onEvent(bot, payload)) {
+            return
+        }
         event.content?.let {
             val msg = MessageUtils.removeMentions(event).trimStart { it.isWhitespace() || it == '\t' }
             msg.split(' ', '\t', limit = 2).takeIf { it.isNotEmpty() }?.let { inst ->
                 if (instructionSet.contains(inst[0])) {
                     executorMap[inst[0]]?.forEach {
                         try {
-                            it.execute(bot, messageInterceptor, inst.getOrNull(1), event, payload.id)
+                            it.execute(
+                                bot,
+                                { u, i -> messageInterceptorManager.addInterceptUser(u, i) },
+                                inst.getOrNull(1),
+                                event,
+                                payload.id
+                            )
                         } catch (e: Exception) {
-                            log.warn("指令执行异常", e)
+                            log.warn("指令 {} 执行异常", it.getInstructions(), e)
                         }
                     }
                 }

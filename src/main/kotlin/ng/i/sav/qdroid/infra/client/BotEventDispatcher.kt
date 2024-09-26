@@ -10,12 +10,13 @@ class BotEventDispatcher(
     private val handlers: List<BotEventHandler<*>>,
     components: ComponentConfiguration
 ) {
+    @Suppress("UNUSED")
     private val objectMapper = components.objectMapper
 
     fun onEvent(bot: QDroid, payload: Payload<*>, event: String) {
         log.debug("Dispatcher msg: {}", event)
 
-        val e = Event.valueOf(payload.t!!)
+        val e = payload.t!!
         handlers.forEach { handler ->
             if (handler.acceptEvents.contains(e)) {
                 handler.onEvent(
@@ -34,7 +35,6 @@ class BotEventDispatcher(
                                 ) {}
                             }
                     }),*/
-                    objectMapper
                 )
             }
         }

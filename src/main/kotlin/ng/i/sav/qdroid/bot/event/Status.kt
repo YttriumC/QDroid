@@ -9,7 +9,13 @@ import java.lang.management.ManagementFactory
 class Status : MessageInstruction {
     override fun getInstructions(): List<String> = listOf("!status", "/status")
 
-    override fun execute(bot: QDroid, interceptor: MessageInterceptor, remainContent: String?, event: Message, eventId: String?) {
+    override fun execute(
+        bot: QDroid,
+        addInterceptor: (userId: String, interceptExecutor: MessageInterceptorManager.InterceptExecutor) -> Unit,
+        remainContent: String?,
+        event: Message,
+        eventId: String?
+    ) {
         val os = ManagementFactory.getPlatformMXBean(com.sun.management.OperatingSystemMXBean::class.java)
         val gcType = ManagementFactory.getGarbageCollectorMXBeans().firstOrNull { it.isValid }?.name ?: ""
         bot.postChannelsMessages(
