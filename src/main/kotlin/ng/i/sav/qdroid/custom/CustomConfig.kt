@@ -1,4 +1,4 @@
-package ng.i.sav.qdroid.cutom
+package ng.i.sav.qdroid.custom
 
 import ng.i.sav.qdroid.bot.event.Status
 import org.springframework.context.annotation.ComponentScan

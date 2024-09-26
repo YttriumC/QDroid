@@ -1,8 +1,5 @@
 package ng.i.sav.qdroid.infra.client
 
-import com.fasterxml.jackson.databind.type.ReferenceType
-import com.fasterxml.jackson.databind.type.SimpleType
-import com.fasterxml.jackson.databind.type.TypeBindings
 import ng.i.sav.qdroid.bot.config.ComponentConfiguration
 import ng.i.sav.qdroid.infra.model.Payload
 import ng.i.sav.qdroid.log.Slf4kt
