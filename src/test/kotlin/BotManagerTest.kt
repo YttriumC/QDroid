@@ -1,9 +1,7 @@
 import ng.i.sav.qdroid.bot.config.BotConfigurer
 import ng.i.sav.qdroid.bot.event.Status
 import ng.i.sav.qdroid.custom.CustomConfig
-import ng.i.sav.qdroid.infra.Starter
 import ng.i.sav.qdroid.log.Slf4kt
-import org.slf4j.event.Level
 import org.springframework.context.annotation.Import
 
 @Import(Status::class)

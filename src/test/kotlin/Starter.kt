@@ -1,14 +1,12 @@
-package ng.i.sav.qdroid.infra
-
 import kotlinx.coroutines.runBlocking
+import ng.i.sav.qdroid.infra.EnableQDroid
 import ng.i.sav.qdroid.infra.client.BotManager
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 
-@ComponentScan
-@Configuration
+@EnableQDroid
 open class Starter {
     fun initSpring(vararg components: Class<*>) = runBlocking {
         log.info("__qdroid__")

@@ -16,10 +16,15 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    val springContext="org.springframework:spring-context:6.1.13"
+    val springWebsocket="org.springframework:spring-websocket:6.1.13"
     // https://mvnrepository.com/artifact/org.springframework/spring-context
-    implementation("org.springframework:spring-context:6.1.13")
+    testImplementation(springContext)
+    compileOnly(springContext)
     // https://mvnrepository.com/artifact/org.springframework/spring-websocket
-    implementation("org.springframework:spring-websocket:6.1.13")
+    testImplementation(springWebsocket)
+    compileOnly(springWebsocket)
+
     implementation("org.springframework.ai:spring-ai-openai:1.0.0-M2") {
         exclude("org.springframework.boot", "*")
         exclude("org.springframework.cloud", "*")
