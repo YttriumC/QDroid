@@ -1,12 +1,8 @@
-package ng.i.sav.qdroid.infra
+package ng.i.sav.qdroid.infra.config
 
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Import
-
-@Import(QDroidConfiguration::class)
-annotation class EnableQDroid
 
 @Configuration
-@ComponentScan
+@ComponentScan("ng.i.sav.qdroid.infra.client", "ng.i.sav.qdroid.infra.config")
 open class QDroidConfiguration

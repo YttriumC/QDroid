@@ -5,7 +5,7 @@ import java.io.File
 import java.time.Duration
 import java.time.LocalDateTime
 
-interface BotApi {
+interface ApiRequest {
     //user
     /**
      * 获取用户详情

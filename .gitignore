@@ -42,6 +42,6 @@ bin/
 .DS_Store
 
 /src/test/kotlin/default.yaml
-/src/test/resources/botApi.properties
 /.kotlin/
-/botApi.properties
+botApi.properties
+/db/

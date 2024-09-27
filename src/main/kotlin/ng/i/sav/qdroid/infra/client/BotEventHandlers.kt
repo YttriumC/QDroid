@@ -1,6 +1,5 @@
 package ng.i.sav.qdroid.infra.client
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.annotation.PostConstruct
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.model.event.*
@@ -10,15 +9,15 @@ import ng.i.sav.qdroid.log.Slf4kt
 interface BotEventHandler<T> {
     val acceptEvents get() = arrayOf<Event>()
 
-    fun onEvent(bot: QDroid, payload: Payload<*>) {
+    fun onEvent(apiRequest: ApiRequest, payload: Payload<*>) {
         if (payload.d == null) {
             log.warn("Event {} data is null", payload.t)
         } else
             @Suppress("UNCHECKED_CAST")
-            onEvent(bot, payload.d as T, payload as Payload<T>)
+            onEvent(apiRequest, payload.d as T, payload as Payload<T>)
     }
 
-    fun onEvent(bot: QDroid, event: T, payload: Payload<T>)
+    fun onEvent(apiRequest: ApiRequest, event: T, payload: Payload<T>)
 
     @PostConstruct
     fun checkAcceptEvent() {

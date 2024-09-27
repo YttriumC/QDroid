@@ -9,16 +9,7 @@ import org.springframework.stereotype.Component
 @Component
 class DefaultLifecycle : BotLifecycle() {
     override fun onAuthenticationSuccess(bot: QDroid) {
-        if (Slf4kt.getLevel().toInt() <= Level.DEBUG.toInt()) {
-            bot.getUsersMeGuilds().forEach {
-                bot.getGuildsApiPermission(it.id).let { ps ->
-                    log.debug(
-                        "Permission for {}: {}",
-                        it.name,
-                        ps.fold("") { acc, p -> "$acc${p.desc} ${if (p.authStatus == 1) "GOT" else "None"}, " })
-                }
-            }
-        }
+       log.info("Bot started: {}",bot)
     }
 
     companion object {

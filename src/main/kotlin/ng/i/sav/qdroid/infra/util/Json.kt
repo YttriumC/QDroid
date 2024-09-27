@@ -34,3 +34,5 @@ fun ObjectMapper.checkLocalDateTimeFormatter() {
         this.toObj<LocalDateTime>("\"2024-09-24T16:39:42+08:00\"")
     }
 }
+
+inline fun <reified T> typeRef() = object : TypeReference<T>() {}

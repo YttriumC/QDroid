@@ -7,8 +7,6 @@ import org.springframework.web.socket.WebSocketHttpHeaders
 import org.springframework.web.socket.client.WebSocketClient
 import java.net.URI
 
-class RestClient(private val restTemplate: RestOperations) : RestOperations by restTemplate
-
 class WsClient(private var webSocketClient: WebSocketClient) {
     companion object {
         private val log = Slf4kt.getLogger(WsClient::class.java)

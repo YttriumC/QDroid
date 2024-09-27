@@ -73,6 +73,7 @@ class LoggerImpl(private val name: String) : Logger {
                 }
             }.let {
                 it.name = "logging-daemon"
+                it.isDaemon = true
                 it.start()
             }
         }

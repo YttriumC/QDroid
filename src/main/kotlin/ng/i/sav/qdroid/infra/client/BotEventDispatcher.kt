@@ -1,6 +1,6 @@
 package ng.i.sav.qdroid.infra.client
 
-import ng.i.sav.qdroid.bot.config.ComponentConfiguration
+import ng.i.sav.qdroid.infra.config.ComponentConfiguration
 import ng.i.sav.qdroid.infra.model.Payload
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.stereotype.Component
@@ -11,9 +11,9 @@ class BotEventDispatcher(
     components: ComponentConfiguration
 ) {
     @Suppress("UNUSED")
-    private val objectMapper = components.objectMapper
+    private val objectMapper = components.getObjectMapper()
 
-    fun onEvent(bot: QDroid, payload: Payload<*>, event: String) {
+    fun onEvent(bot: ApiRequest, payload: Payload<*>, event: String) {
         log.debug("Dispatcher msg: {}", event)
 
         val e = payload.t!!

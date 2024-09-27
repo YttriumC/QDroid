@@ -2,8 +2,8 @@ package ng.i.sav.qdroid.bot.event
 
 import jakarta.annotation.PostConstruct
 import ng.i.sav.qdroid.bot.util.MessageUtils
+import ng.i.sav.qdroid.infra.client.ApiRequest
 import ng.i.sav.qdroid.infra.client.MessageEventHandler
-import ng.i.sav.qdroid.infra.client.QDroid
 import ng.i.sav.qdroid.infra.model.Message
 import ng.i.sav.qdroid.infra.model.Payload
 import ng.i.sav.qdroid.log.Slf4kt
@@ -19,8 +19,8 @@ class MessageInstructManager(
         messageInstructions.flatMap { it.getInstructions().map { i -> i to it } }
             .groupByTo(mutableMapOf(), { it.first }, { it.second })
     private val instructionSet = executorMap.keys
-    override fun onEvent(bot: QDroid, event: Message, payload: Payload<Message>) {
-        if (messageInterceptorManager.onEvent(bot, payload)) {
+    override fun onEvent(apiRequest: ApiRequest, event: Message, payload: Payload<Message>) {
+        if (messageInterceptorManager.onEvent(apiRequest, payload)) {
             return
         }
         event.content?.let {
@@ -30,7 +30,7 @@ class MessageInstructManager(
                     executorMap[inst[0]]?.forEach {
                         try {
                             it.execute(
-                                bot,
+                                apiRequest,
                                 { u, i -> messageInterceptorManager.addInterceptUser(u, i) },
                                 inst.getOrNull(1),
                                 event,
