@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import ng.i.sav.qdroid.bot.event.MessageInstruction
 import ng.i.sav.qdroid.bot.event.MessageInterceptorManager
 import ng.i.sav.qdroid.bot.event.NamedPersistenceModule
+import ng.i.sav.qdroid.infra.client.ApiPath
 import ng.i.sav.qdroid.infra.client.ApiRequest
 import ng.i.sav.qdroid.infra.model.Message
 import ng.i.sav.qdroid.infra.model.sendText
@@ -23,6 +24,7 @@ class Forwarder(namedPersistenceModule: NamedPersistenceModule) : MessageInstruc
         message: Message,
         eventId: String?
     ) {
+
         var forwarderConfigs = runBlocking {
             persistence.get(
                 "forwarderInfo",

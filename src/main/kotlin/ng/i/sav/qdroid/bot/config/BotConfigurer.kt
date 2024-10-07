@@ -1,10 +1,6 @@
 package ng.i.sav.qdroid.bot.config
 
-import ng.i.sav.qdroid.infra.client.BotEventDispatcher
-import ng.i.sav.qdroid.infra.client.BotLifecycle
-import ng.i.sav.qdroid.infra.client.HttpRequestPool
 import ng.i.sav.qdroid.infra.client.Intents
-import ng.i.sav.qdroid.infra.config.ComponentConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
