@@ -9,13 +9,13 @@ import java.util.*
 
 @Configuration
 @ComponentScan("ng.i.sav.qdroid.bot")
-open class BotConfigurer {
+open class DefaultBotConfigurer {
 
     /**
      * When multiple instances are needed, the range should be provided.
      * */
     open fun getShardsRange(): IntRange {
-        return IntRange(0, 0)
+        return 0..<1
     }
 
     open fun getIntents(): Array<Intents> {
@@ -39,7 +39,8 @@ open class BotConfigurer {
             totalShards = (it["totalShards"] as String).toInt()
         }
         return BotConfiguration(
-            appId, token, apiHost, getIntents() + Intents.MESSAGE_AUDIT, totalShards = totalShards, isPrivateBot = isPrivateBot
+            appId, token, apiHost, getIntents() + Intents.MESSAGE_AUDIT,
+            totalShards = totalShards, shardsRange = getShardsRange(), isPrivateBot = isPrivateBot
         )
     }
 

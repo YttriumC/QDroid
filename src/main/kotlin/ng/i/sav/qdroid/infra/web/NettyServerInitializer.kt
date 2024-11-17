@@ -3,9 +3,9 @@ package ng.i.sav.qdroid.infra.web
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.util.concurrent.DefaultEventExecutor
 import ng.i.sav.qdroid.log.Slf4kt
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.client.ReactorResourceFactory
@@ -31,8 +31,14 @@ import java.time.Duration
 
 
 @Configuration
-@ComponentScan
-open class NettyServerInitializer {
+open class NettyServerInitializer(@Autowired(required = false) webServerConfigurer: WebServerConfigurer?) {
+    private lateinit var webServerConfigurer: WebServerConfigurer
+
+    init {
+        if (webServerConfigurer == null)
+            this.webServerConfigurer = WebServerConfigurer()
+    }
+
     @Bean
     open fun webHandler(): DispatcherHandler {
         return DispatcherHandler()
@@ -51,7 +57,7 @@ open class NettyServerInitializer {
     @Bean
     open fun resourceWebHandler(): ResourceWebHandler {
         return ResourceWebHandler().apply {
-            setLocations(listOf(ClassPathResource("static/")))
+            locations = listOf(ClassPathResource("static/"))
             resourceResolvers.add(PathResourceResolver().apply { setAllowedLocations(ClassPathResource("static/")) })
         }
     }
@@ -61,7 +67,8 @@ open class NettyServerInitializer {
         httpHandler: HttpHandler,
         reactorResourceFactory: ReactorResourceFactory,
     ): DisposableServer {
-        return HttpServer.create().accessLog(true).bindAddress { java.net.InetSocketAddress(18089) }.protocol(*listProtocols())
+        return HttpServer.create().accessLog(true).bindAddress { webServerConfigurer.getBindSocketAddress() }
+            .protocol(*listProtocols())
             .channelGroup(DefaultChannelGroup(DefaultEventExecutor())).handle(ReactorHttpHandlerAdapter(httpHandler))
             .runOn(reactorResourceFactory.loopResources).bindNow(Duration.ofSeconds(10))
     }
