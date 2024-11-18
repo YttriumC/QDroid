@@ -11,7 +11,7 @@ interface ApiRequest {
      * 获取用户详情
      * @return [User]
      * */
-    fun getUsersMe(): User
+    suspend fun getUsersMe(): User
 
     /**
      * 获取用户频道列表
@@ -20,47 +20,47 @@ interface ApiRequest {
      * @param limit    int	每次拉取多少条数据	默认 100, 最大 100
      * @return [User]
      * */
-    fun getUsersMeGuilds(before: String? = null, after: String? = "0", limit: Int = 100): ArrayList<Guild>
+    suspend fun getUsersMeGuilds(before: String? = null, after: String? = "0", limit: Int = 100): ArrayList<Guild>
 
     // guild
     /**
      * 获取频道详情
      * @return [Guild]
      * */
-    fun getGuilds(guildId: String): ng.i.sav.qdroid.infra.model.Guild
+    suspend fun getGuilds(guildId: String): Guild
 
     // channel
     /**
      * 获取子频道列表
      * @return [Channel]数组
      * */
-    fun getGuildsChannels(guildId: String): List<Channel>
+    suspend fun getGuildsChannels(guildId: String): List<Channel>
 
     /**
      * 获取子频道详情
      * @return [ChannelDetail]
      */
-    fun getChannels(channelId: String): ChannelDetail
+    suspend fun getChannels(channelId: String): ChannelDetail
 
     /**
      * 创建子频道
      */
-    fun createGuildsChannels(guildId: String, channel: CreateChannel): Channel
+    suspend fun createGuildsChannels(guildId: String, channel: CreateChannel): Channel
 
     /**
      * 修改子频道
      */
-    fun modifyChannels(channelId: String, modifyChannel: ModifyChannel): Channel
+    suspend fun modifyChannels(channelId: String, modifyChannel: ModifyChannel): Channel
 
     /**
      * 删除子频道
      */
-    fun deleteChannels(channelId: String)
+    suspend fun deleteChannels(channelId: String)
 
     /**
      * 获取在线成员数
      */
-    fun getChannelsOnlineNums(channelId: String): OnlineNums
+    suspend fun getChannelsOnlineNums(channelId: String): OnlineNums
 
     /**
      * 获取频道成员列表
@@ -71,7 +71,7 @@ interface ApiRequest {
      * 2. 每次返回的member数量与limit不一定完全相等。翻页请使用最后一个member的user id作为下一次请求的after参数，直到回包为空，拉取结束。
      * @return [Member] 数组
      */
-    fun getGuildsMembers(guildId: String, after: String = "0", limit: Int = 1): List<ng.i.sav.qdroid.infra.model.Member>
+    suspend fun getGuildsMembers(guildId: String, after: String = "0", limit: Int = 1): List<Member>
 
     /**
      * 获取频道身份组成员列表
@@ -79,7 +79,7 @@ interface ApiRequest {
      * 1. 每次返回的member数量与limit不一定完全相等。特定管理身份组下的成员可能存在一次性返回全部的情况
      * @return [RolesResp]
      * */
-    fun getGuildsMembersRoles(
+    suspend fun getGuildsMembersRoles(
         guildId: String,
         roleId: String,
         startIndex: String = "0",
@@ -90,7 +90,7 @@ interface ApiRequest {
      * 获取成员详情
      * @return [Member]
      * */
-    fun getGuildsMember(guildId: String, userId: String): ng.i.sav.qdroid.infra.model.Member
+    suspend fun getGuildsMember(guildId: String, userId: String): Member
 
     /**
      * 删除频道成员
@@ -103,7 +103,7 @@ interface ApiRequest {
      * @param addBlacklist    bool	删除成员的同时，将该用户添加到频道黑名单中
      * @param deleteHistoryMsgDays    int	删除成员的同时，撤回该成员的消息，可以指定撤回消息的时间范围 注：消息撤回时间范围仅支持固定的天数：3，7，15，30。 特殊的时间范围：-1: 撤回全部消息。默认值为0不撤回任何消息。
      * */
-    fun deleteGuildsMembers(
+    suspend fun deleteGuildsMembers(
         guildId: String,
         userId: String,
         addBlacklist: Boolean = false,
@@ -116,7 +116,7 @@ interface ApiRequest {
      * 用于在guild_id 指定的频道下创建一个身份组。
      * @return [RolesListResp]
      */
-    fun getGuildsRoles(guildId: String): RolesListResp
+    suspend fun getGuildsRoles(guildId: String): RolesListResp
 
     /**
      * - 需要使用的 token 对应的用户具备创建身份组权限。如果是机器人，要求被添加为管理员。
@@ -126,7 +126,7 @@ interface ApiRequest {
      * @param hoist    int32	在成员列表中单独展示: 0-否, 1-是(非必填)
      * @return [CreatedRole]
      * */
-    fun createGuildsRoles(guildId: String, name: String? = null, color: UInt? = null, hoist: Int? = null): CreatedRole
+    suspend fun createGuildsRoles(guildId: String, name: String? = null, color: UInt? = null, hoist: Int? = null): CreatedRole
 
     /**
      * 用于修改频道 guild_id 下 role_id 指定的身份组。
@@ -138,7 +138,7 @@ interface ApiRequest {
      * @param hoist    int32	在成员列表中单独展示: 0-否, 1-是(非必填)
      * @return [ChangedRole]
      * */
-    fun modifyGuildsRoles(
+    suspend fun modifyGuildsRoles(
         guildId: String,
         roleId: String,
         name: String? = null,
@@ -153,7 +153,7 @@ interface ApiRequest {
      *
      * - 需要使用的 token 对应的用户具备删除身份组权限。如果是机器人，要求被添加为管理员
      * */
-    fun deleteGuildsRoles(guildId: String, roleId: String)
+    suspend fun deleteGuildsRoles(guildId: String, roleId: String)
 
     /**
      * 创建频道身份组成员
@@ -162,7 +162,7 @@ interface ApiRequest {
      * - 需要使用的 token 对应的用户具备增加身份组成员权限。如果是机器人，要求被添加为管理员。
      * - 如果要增加的身份组 ID 是5-子频道管理员，需要增加 channel 对象来指定具体是哪个子频道
      * */
-    fun addGuildsRolesMembers(guildId: String, userId: String, roleId: String, channel: Channel)
+    suspend fun addGuildsRolesMembers(guildId: String, userId: String, roleId: String, channel: Channel)
 
     /**
      * 删除频道身份组成员
@@ -172,7 +172,7 @@ interface ApiRequest {
      * - 需要使用的 token 对应的用户具备删除身份组成员权限。如果是机器人，要求被添加为管理员。
      * - 如果要删除的身份组 ID 是5-子频道管理员，需要增加 channel 对象来指定具体是哪个子频道。
      * */
-    fun deleteGuildsRolesMembers(guildId: String, roleId: String, userId: String, channel: Channel)
+    suspend fun deleteGuildsRolesMembers(guildId: String, roleId: String, userId: String, channel: Channel)
     //ChannelPermissions
     /**
      * 获取子频道用户权限
@@ -183,7 +183,7 @@ interface ApiRequest {
      *
      * @return [ChannelPermissions]
      * */
-    fun getChannelsMembersPermissions(channelId: String, userId: String): ChannelPermissions
+    suspend fun getChannelsMembersPermissions(channelId: String, userId: String): ChannelPermissions
 
     /**
      * 修改子频道权限
@@ -198,7 +198,7 @@ interface ApiRequest {
      * @param remove    string	字符串形式的位图表示删除用户的权限
      * */
 
-    fun modifyChannelsMembersPermissions(
+    suspend fun modifyChannelsMembersPermissions(
         channelId: String,
         userId: String,
         add: UInt?,
@@ -213,7 +213,7 @@ interface ApiRequest {
      * - 要求操作人具有管理子频道的权限，如果是机器人，则需要将机器人设置为管理员。
      * @return [ChannelPermissions]
      * */
-    fun getChannelsRolesPermissions(channelId: String, roleId: String): ChannelPermissions
+    suspend fun getChannelsRolesPermissions(channelId: String, roleId: String): ChannelPermissions
 
     /**
      * 修改子频道身份组权限
@@ -227,7 +227,7 @@ interface ApiRequest {
      * @param remove    string	字符串形式的位图表示删除用户的权限
      * @return [ChannelPermissions]
      * */
-    fun modifyChannelsRolesPermissions(
+    suspend fun modifyChannelsRolesPermissions(
         channelId: String, roleId: String,
         add: UInt?,
         remove: UInt?
@@ -237,7 +237,7 @@ interface ApiRequest {
     /**
      * 获取指定消息
      * */
-    fun getChannelsMessages(channelId: String, messageId: String): Message
+    suspend fun getChannelsMessages(channelId: String, messageId: String): Message
 
     /**
      * 用于向 [channel_id][channelId] 指定的子频道发送消息。
@@ -292,7 +292,7 @@ interface ApiRequest {
      * @param fileImage [File] 图片文件。form-data 支持直接通过文件上传的方式发送图片。
      * @return [Message]
      * */
-    fun postChannelsMessages(
+    suspend fun postChannelsMessages(
         channelId: String,
         content: String? = null,
         embed: MessageEmbed? = null,
@@ -311,7 +311,7 @@ interface ApiRequest {
      *
      * @param hideTip    bool	选填，是否隐藏提示小灰条，true 为隐藏，false 为显示。默认为false
      * */
-    fun deleteChannelsMessages(channelId: String, messageId: String, hideTip: Boolean = false)
+    suspend fun deleteChannelsMessages(channelId: String, messageId: String, hideTip: Boolean = false)
 
     // Message setting
 
@@ -320,7 +320,7 @@ interface ApiRequest {
      *
      * @return [MessageSetting]
      * */
-    fun getGuildsMessageSetting(guildId: String): MessageSetting
+    suspend fun getGuildsMessageSetting(guildId: String): MessageSetting
 
     // Direct Message
 
@@ -330,7 +330,7 @@ interface ApiRequest {
      * @param sourceGuildId    string	源频道 id
      * @return [DirectMessage]
      * */
-    fun createUsersDms(recipientId: String, sourceGuildId: String): DirectMessage
+    suspend fun createUsersDms(recipientId: String, sourceGuildId: String): DirectMessage
 
     /**
      * 发送私信
@@ -354,7 +354,7 @@ interface ApiRequest {
      * @param fileImage 参见 [postChannelsMessages]
      * @return [Message]
      * */
-    fun postDmsMessages(
+    suspend fun postDmsMessages(
         guildId: String,
         content: String? = null,
         embed: MessageEmbed? = null,
@@ -374,7 +374,7 @@ interface ApiRequest {
      * @param hideTip    bool	选填，是否隐藏提示小灰条，true 为隐藏，false 为显示。默认为false
      * @param messageId
      * */
-    fun deleteDmsMessages(guildId: String, messageId: String, hideTip: Boolean = false)
+    suspend fun deleteDmsMessages(guildId: String, messageId: String, hideTip: Boolean = false)
 
     // Prohibition
     /**
@@ -387,7 +387,7 @@ interface ApiRequest {
      * @param muteEndTimestamp    string	禁言到期时间戳，绝对时间戳，单位：秒（与 mute_seconds 字段同时赋值的话，以该字段为准）
      * @param muteSeconds    string	禁言多少秒（两个字段二选一，默认以 mute_end_timestamp 为准）
      * */
-    fun setGuildsMute(guildId: String, muteEndTimestamp: LocalDateTime?, muteSeconds: Duration = Duration.ZERO)
+    suspend fun setGuildsMute(guildId: String, muteEndTimestamp: LocalDateTime?, muteSeconds: Duration = Duration.ZERO)
 
     /**
      * 禁言指定成员
@@ -399,7 +399,7 @@ interface ApiRequest {
      * @param muteEndTimestamp    string	禁言到期时间戳，绝对时间戳，单位：秒（与 [muteSeconds] 字段同时赋值的话，以该字段为准）
      * @param muteSeconds    string	禁言多少秒（两个字段二选一，默认以 [muteEndTimestamp] 为准）
      * */
-    fun setGuildsMembersMute(
+    suspend fun setGuildsMembersMute(
         guildId: String,
         userId: String,
         muteEndTimestamp: LocalDateTime?,
@@ -418,7 +418,7 @@ interface ApiRequest {
      * @param userIds    string列表	禁言成员的user_id列表，即[User]的id
      * @return 设置成功的成员user_ids
      * */
-    fun setGuildsMuteList(
+    suspend fun setGuildsMuteList(
         guildId: String,
         userIds: List<String>,
         muteEndTimestamp: LocalDateTime?,
@@ -446,7 +446,7 @@ interface ApiRequest {
      * @param recommendChannels    RecommendChannel 数组	选填，推荐子频道列表，会一次全部替换推荐子频道列表
      * @return [Announces]
      * */
-    fun createGuildsAnnounces(
+    suspend fun createGuildsAnnounces(
         guildId: String,
         channelId: String?,
         messageId: String?,
@@ -460,7 +460,7 @@ interface ApiRequest {
      * 用于删除频道 guild_id 下指定 message_id 的全局公告。
      * - message_id 有值时，会校验 message_id 合法性，若不校验校验 message_id，请将 message_id 设置为 all
      * */
-    fun deleteGuildsAnnounces(guildId: String, messageId: String)
+    suspend fun deleteGuildsAnnounces(guildId: String, messageId: String)
 
     // PinsMessage
     /**
@@ -472,7 +472,7 @@ interface ApiRequest {
      * - 接口返回对象中 message_ids 为当前请求后子频道内所有精华消息 message_id 数组
      * @return [PinsMessage]
      * */
-    fun addChannelsPins(channelId: String, messageId: String): ng.i.sav.qdroid.infra.model.PinsMessage
+    suspend fun addChannelsPins(channelId: String, messageId: String): PinsMessage
 
     /**
      * 删除精华消息
@@ -481,7 +481,7 @@ interface ApiRequest {
      * - 删除子频道内全部精华消息，请将 message_id 设置为 all。
      *
      * */
-    fun deleteChannelsPins(channelId: String, messageId: String = "all")
+    suspend fun deleteChannelsPins(channelId: String, messageId: String = "all")
 
     /**
      * 获取精华消息
@@ -489,7 +489,7 @@ interface ApiRequest {
      * 用于获取子频道 channel_id 内的精华消息。
      *
      * */
-    fun getChannelsPins(channelId: String): ng.i.sav.qdroid.infra.model.PinsMessage
+    suspend fun getChannelsPins(channelId: String): PinsMessage
 
     // Schedule
     /**
@@ -501,7 +501,7 @@ interface ApiRequest {
      * @param since    uint64	起始时间戳(ms)
      * @return [Schedule]数组
      * */
-    fun getChannelsSchedules(channelId: String, since: LocalDateTime?): List<Schedule>
+    suspend fun getChannelsSchedules(channelId: String, since: LocalDateTime?): List<Schedule>
 
     /**
      * 获取日程详情
@@ -509,7 +509,7 @@ interface ApiRequest {
      * 获取日程子频道 channel_id 下 schedule_id 指定的的日程的详情
      * @return [Schedule]
      * */
-    fun getChannelsSchedule(channelId: String, scheduleId: String): Schedule
+    suspend fun getChannelsSchedule(channelId: String, scheduleId: String): Schedule
 
     /**
      * 创建日程
@@ -525,7 +525,7 @@ interface ApiRequest {
      * @param schedule    [Schedule]	日程对象，不需要带 id
      * @return [Schedule]
      * */
-    fun createChannelsSchedules(channelId: String, schedule: Schedule): Schedule
+    suspend fun createChannelsSchedules(channelId: String, schedule: Schedule): Schedule
 
     /**
      * 修改日程
@@ -534,7 +534,7 @@ interface ApiRequest {
      *
      * - 要求操作人具有管理频道的权限，如果是机器人，则需要将机器人设置为管理员。
      * */
-    fun modifyChannelsSchedules(channelId: String, scheduleId: String, schedule: Schedule)
+    suspend fun modifyChannelsSchedules(channelId: String, scheduleId: String, schedule: Schedule)
 
     /**
      * 删除日程
@@ -542,7 +542,7 @@ interface ApiRequest {
      * 用于删除日程子频道 channel_id 下 schedule_id 指定的日程。
      * - 要求操作人具有管理频道的权限，如果是机器人，则需要将机器人设置为管理员。
      * */
-    fun deleteChannelsSchedules(channelId: String, scheduleId: String)
+    suspend fun deleteChannelsSchedules(channelId: String, scheduleId: String)
 
     // Message Reaction
     /**
@@ -552,7 +552,7 @@ interface ApiRequest {
      * @param messageId    string	消息ID
      * @param emoji    int	表情类型，参考 [EmojiType]
      * */
-    fun setChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji)
+    suspend fun setChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji)
 
     /**
      * 删除自己的表情表态
@@ -561,7 +561,7 @@ interface ApiRequest {
      * @param messageId    string	消息ID
      * @param emoji    int	表情类型，参考 [EmojiType]
      * */
-    fun deleteChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji)
+    suspend fun deleteChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji)
 
     /**
      * 拉取表情表态用户列表
@@ -574,7 +574,7 @@ interface ApiRequest {
      * @param limit    int	每次拉取数量，默认20，最多50，只在第一次请求时设置
      * @return [ReactionList]
      * */
-    fun getChannelsMessagesReactions(
+    suspend fun getChannelsMessagesReactions(
         channelId: String,
         messageId: String,
         emoji: Emoji,
@@ -592,7 +592,7 @@ interface ApiRequest {
      * @param channelId
      * @param audioControl [AudioControl]
      * */
-    fun setChannelsAudio(channelId: String, audioControl: AudioControl)
+    suspend fun setChannelsAudio(channelId: String, audioControl: AudioControl)
 
     /**
      * 机器人上麦
@@ -601,7 +601,7 @@ interface ApiRequest {
      * - 音频接口：仅限音频类机器人才能使用，后续会根据机器人类型自动开通接口权限，现如需调用，需联系平台申请权限。
      * @param channelId
      * */
-    fun putChannelsMic(channelId: String)
+    suspend fun putChannelsMic(channelId: String)
 
     /**
      * 机器人下麦
@@ -610,7 +610,7 @@ interface ApiRequest {
      * - 音频接口：仅限音频类机器人才能使用，后续会根据机器人类型自动开通接口权限，现如需调用，需联系平台申请权限。
      * @param channelId
      * */
-    fun deleteChannelsMic(channelId: String)
+    suspend fun deleteChannelsMic(channelId: String)
 
     // forum
 
@@ -622,14 +622,14 @@ interface ApiRequest {
      * @return threads	Thread	帖子列表对象（返回值里面的content字段，可参照RichText结构）
      * is_finish	uint32	是否拉取完毕(0:否；1:是)
      * */
-    fun getChannelsThreads(channelId: String): ThreadsResp
+    suspend fun getChannelsThreads(channelId: String): ThreadsResp
 
     /**
      * 获取帖子详情
      *
      * 该接口用于获取子频道下的帖子详情
      * */
-    fun getChannelsThread(channelId: String, threadId: String): ThreadResp
+    suspend fun getChannelsThread(channelId: String, threadId: String): ThreadResp
 
     /**
      * 发表帖子
@@ -637,12 +637,12 @@ interface ApiRequest {
      * 创建成功后，返回创建成功的任务ID。
      *
      * */
-    fun createChannelsThreads(channelId: String, title: String, content: String, format: Format): CreateThreadResp
+    suspend fun createChannelsThreads(channelId: String, title: String, content: String, format: Format): CreateThreadResp
 
     /**
      *
      * */
-    fun deleteChannelsThreads(channelId: String, threadId: String)
+    suspend fun deleteChannelsThreads(channelId: String, threadId: String)
     // API Permissions
     /**
      * 获取频道可用权限列表
@@ -650,7 +650,7 @@ interface ApiRequest {
      * 获取频道可用权限列表
      * @return [APIPermission]数组
      * */
-    fun getGuildsApiPermission(guildId: String): List<APIPermission>
+    suspend fun getGuildsApiPermission(guildId: String): List<APIPermission>
 
     /**
      * 创建频道 API 接口权限授权链接
@@ -663,7 +663,7 @@ interface ApiRequest {
      * @param desc    string	机器人申请对应的 API 接口权限后可以使用功能的描述
      * @return [APIPermissionDemand]
      * */
-    fun createGuildsApiPermissionDemand(
+    suspend fun createGuildsApiPermissionDemand(
         guildId: String,
         channelId: String,
         apiIdentify: APIPermissionDemandIdentify,
@@ -676,7 +676,7 @@ interface ApiRequest {
      *
      * 用于获取 WSS 接入地址，通过该地址可建立 websocket 长连接。
      * */
-    fun getGateway(): String
+    suspend fun getGateway(): String
 
     /**
      * 获取带分片 WSS 接入点
@@ -687,5 +687,15 @@ interface ApiRequest {
      * - 目前连接数使用情况。
      * @return [WebsocketApi]
      * */
-    fun getGatewayBot(): WebsocketApi
+    suspend fun getGatewayBot(): WebsocketApi
+
+    /**
+     *
+     * */
+    suspend fun postUsersMessage(): Message
+
+    /**
+     *
+     * */
+    suspend fun postGroupsMessage(): Message
 }

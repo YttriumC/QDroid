@@ -12,9 +12,12 @@ import ng.i.sav.qdroid.infra.config.WsClient
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
+import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.socket.*
-import org.springframework.web.util.DefaultUriBuilderFactory
-import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode
+import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
+import reactor.netty.http.client.WebsocketClientSpec
+import reactor.netty.http.websocket.WebsocketOutbound
 import java.net.URI
 import java.net.URL
 import java.nio.ByteBuffer
@@ -53,7 +56,12 @@ class QDroid(
     @Volatile
     private var _state = State.STANDBY
 
-    val state get() = _state
+    var state
+        get() = _state
+        private set(value) {
+            _state = value
+            log.debug("QDroid state changed to: {}", _state)
+        }
 
     val webSocketHandler: BotWebSocketHandler = BotWebSocketHandler()
 
@@ -77,12 +85,17 @@ class QDroid(
      * 启动bot
      * */
     fun start() {
-        val gatewayBot = apiRequest.getGatewayBot()
-        this.wsURL = gatewayBot.url
-        GlobalScope.launch {
+        QDroidScope.launch {
+            val gatewayBot = apiRequest.getGatewayBot()
+            this@QDroid.wsURL = gatewayBot.url
             lock.withLock {
                 log.info("get websocket url: {}", gatewayBot.url)
                 log.debug("recommended shards: {}", gatewayBot.shards)
+                HttpClient.create().websocket().uri(wsURL).handle { inbound, outbound ->
+
+                    outbound.sendObject(inbound.receive().asString().flatMap { Mono.just(TextMessage(it)) }.doOnNext { handleMessage(outbound, it) }).neverComplete()
+                }.subscribe()
+
                 wsClient.startConnection(this@QDroid, URI(wsURL))
                 lifecycle.forEach {
                     runCatching { it.onStart(this@QDroid) }.exceptionOrNull()
@@ -95,27 +108,18 @@ class QDroid(
 
     fun shutdown() {
         log.info("bot start shutting down")
-        _state = State.SHUTDOWN
+        state = State.SHUTDOWN
         lifecycle.forEach {
             runCatching { it.onShutdown(this@QDroid) }.exceptionOrNull()?.let { log.warn("Bot difecycle shutdown") }
         }
         webSocketHandler.close()
     }
 
-    private fun throwAtLeastOne(): Nothing {
-        throw IllegalArgumentException("At least one arg needed.")
-    }
-
-
-    private val defaultUriBuilderFactory = DefaultUriBuilderFactory().apply {
-        encodingMode = EncodingMode.URI_COMPONENT
-    }
-
     /**
      * All messages' entry
      * */
-    private fun handleMessage(session: WebSocketSession, message: WebSocketMessage<*>) {
-        when (_state) {
+    private fun handleMessage(session: WebsocketOutbound, message: WebSocketMessage<*>) {
+        when (state) {
             State.HELLO -> helloStage(session, message)
             State.AUTHENTICATION_SENT -> authenticationStage(session, message)
             State.CONNECTED -> when (message) {
@@ -132,7 +136,7 @@ class QDroid(
 
     }
 
-    private fun helloStage(session: WebSocketSession, message: WebSocketMessage<*>) {
+    private fun helloStage(session:  WebsocketOutbound, message: WebSocketMessage<*>) {
         message.toObj<Op10Hello>().let { payload ->
             payload.d?.let { heartbeatTimeoutMillis = it.heartbeatInterval.toLong() }
             payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
@@ -140,11 +144,11 @@ class QDroid(
             session.sendText(
                 OpCode.IDENTIFY, Authentication(getAuthToken(), intents, arrayOf(currentShard, totalShards))
             )
-            _state = State.AUTHENTICATION_SENT
+            state = State.AUTHENTICATION_SENT
         }
     }
 
-    private fun WebSocketSession.startHeartbeat() {
+    private fun  WebsocketOutbound.startHeartbeat() {
         stopHeartbeat("New connection established")
         heartbeatJob = GlobalScope.launch {
             while (true) {
@@ -181,7 +185,7 @@ class QDroid(
                             )
                         }
                     }
-                    _state = State.CONNECTED
+                    state = State.CONNECTED
                     log.debug("state changed to: {}", State.CONNECTED)
                     lifecycle.forEach {
                         runCatching { it.onAuthenticationSuccess(this) }.exceptionOrNull()
@@ -190,7 +194,7 @@ class QDroid(
                 }
 
                 OpCode.INVALID_SESSION -> {
-                    _state = State.HELLO
+                    state = State.HELLO
                     throw RuntimeException("Authentication failed: ${getAuthToken()}")
                 }
 
@@ -218,12 +222,12 @@ class QDroid(
                             log.info("Bot connected: session id: {}, user: {}", sessionId, user)
                         }
                     }
-                    _state = State.CONNECTED
+                    state = State.CONNECTED
                     session.startHeartbeat()
                 }
 
                 OpCode.RECONNECT, OpCode.INVALID_SESSION -> {
-                    _state = State.STANDBY
+                    state = State.STANDBY
                 }
 
                 OpCode.HELLO -> session.sendText(OpCode.RESUME, Op6Resume(getAuthToken(), sessionId, wsMsgSeq))
@@ -244,7 +248,7 @@ class QDroid(
             }
 
             OpCode.RECONNECT -> {
-                _state = State.RESUME
+                state = State.RESUME
                 stopHeartbeat("Resume")
                 log.info("Received RECONNECT: {}", msg.payload)
             }
@@ -269,7 +273,7 @@ class QDroid(
         private var msgList = ArrayList<WebSocketMessage<*>>()
         private lateinit var session: WebSocketSession
         override fun afterConnectionEstablished(session: WebSocketSession) {
-            if (_state != State.RESUME) _state =
+            if (state != State.RESUME) state =
                 State.HELLO
             this.session = session
             this@QDroid.session = session
@@ -310,7 +314,7 @@ class QDroid(
         }
 
         override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
-            _state = State.RESUME
+            state = State.RESUME
             if (heartbeatJob.isActive) heartbeatJob.cancel("Connection abort", exception)
             if (msgList.isNotEmpty()) {
                 log.error(
@@ -325,30 +329,30 @@ class QDroid(
 
         override fun afterConnectionClosed(session: WebSocketSession, closeStatus: CloseStatus) {
             log.info("WS Connection '{}' is closed : {}", session.uri, closeStatus.code)
-            if (_state == State.SHUTDOWN) return
+            if (state == State.SHUTDOWN) return
             stopHeartbeat("Connection closed: $closeStatus")
             when (closeStatus.code) {
                 4001 -> log.error("无效的 opcode")
                 4002 -> log.error("无效的 payload")
                 4006 -> {
                     log.error("无效的 session id，无法继续 resume，请 identify")
-                    _state = State.STANDBY
+                    state = State.STANDBY
                 }
 
                 4007 -> {
                     log.error("seq 错误")
-                    _state = State.STANDBY
+                    state = State.STANDBY
                 }
 
                 4008 -> {
                     log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
-                    _state = State.RESUME
+                    state = State.RESUME
                     wsClient.startConnection(this@QDroid, URI(wsURL))
                 }
 
                 4009 -> {
                     log.warn("连接过期，请重连并执行 resume 进行重新连接")
-                    _state = State.RESUME
+                    state = State.RESUME
                     wsClient.startConnection(this@QDroid, URI(wsURL))
                 }
 
@@ -389,7 +393,7 @@ class QDroid(
 
                 else -> {
                     log.warn("内部错误，正在重连")
-                    _state = State.STANDBY
+                    state = State.STANDBY
                     start()
                 }
             }
@@ -398,7 +402,7 @@ class QDroid(
         override fun supportsPartialMessages(): Boolean = true
 
         fun close() {
-            _state = State.SHUTDOWN
+            state = State.SHUTDOWN
             stopHeartbeat("Bot shutdown")
             if (session.isOpen) session.close(CloseStatus.NORMAL)
             lifecycle.forEach {

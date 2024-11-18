@@ -1,14 +1,19 @@
 package ng.i.sav.qdroid.infra.client
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import ng.i.sav.qdroid.bot.config.BotConfiguration
-import ng.i.sav.qdroid.infra.config.ComponentConfiguration
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.core.ParameterizedTypeReference
-import org.springframework.http.*
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
-import org.springframework.web.client.RestTemplate
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitExchange
 import org.springframework.web.util.DefaultUriBuilderFactory
 import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode
 import org.springframework.web.util.UriComponentsBuilder
@@ -19,25 +24,22 @@ import java.time.ZoneOffset
 
 @Component
 class StatelessApiRequest(
-    configuration: BotConfiguration,
-    componentConfiguration: ComponentConfiguration
+    configuration: BotConfiguration
 ) : ApiRequest {
     private val appId: String = configuration.appId
     private val token: String = configuration.token
     private val apiHost: String = configuration.apiHost
-    private val restTemplate: RestTemplate = componentConfiguration.getRestTemplate()
-    private val httpRequestPool: HttpRequestPool = componentConfiguration.httpRequestPool()
 
 
     private fun throwAtLeastOne(): Nothing {
         throw IllegalArgumentException("At least one arg needed.")
     }
 
-    override fun getUsersMe(): User {
+    override suspend fun getUsersMe(): User {
         return get(ApiPath.GET_USERS_ME)
     }
 
-    override fun getUsersMeGuilds(before: String?, after: String?, limit: Int): ArrayList<Guild> {
+    override suspend fun getUsersMeGuilds(before: String?, after: String?, limit: Int): ArrayList<Guild> {
         if (Tools.allBlank(before, after)) {
             throwAtLeastOne()
         }
@@ -47,51 +49,51 @@ class StatelessApiRequest(
         return get(ApiPath.GET_USERS_ME_GUILDS, params = map)
     }
 
-    override fun getGuilds(guildId: String): Guild {
+    override suspend fun getGuilds(guildId: String): Guild {
         return get(ApiPath.GET_GUILDS, guildId)
     }
 
-    override fun getGuildsChannels(guildId: String): List<Channel> {
+    override suspend fun getGuildsChannels(guildId: String): List<Channel> {
         return get(ApiPath.GET_GUILDS_CHANNELS, guildId)
     }
 
-    override fun getChannels(channelId: String): ChannelDetail {
+    override suspend fun getChannels(channelId: String): ChannelDetail {
         return get(ApiPath.GET_CHANNELS, channelId)
     }
 
-    override fun createGuildsChannels(guildId: String, channel: CreateChannel): Channel {
+    override suspend fun createGuildsChannels(guildId: String, channel: CreateChannel): Channel {
         return post(ApiPath.CREATE_GUILDS_CHANNELS, channel, uriVariables = arrayOf(guildId))
     }
 
-    override fun modifyChannels(channelId: String, modifyChannel: ModifyChannel): Channel {
+    override suspend fun modifyChannels(channelId: String, modifyChannel: ModifyChannel): Channel {
         return patch(ApiPath.MODIFY_CHANNELS, modifyChannel, channelId)
     }
 
-    override fun deleteChannels(channelId: String) {
+    override suspend fun deleteChannels(channelId: String) {
         return delete(ApiPath.DELETE_CHANNELS, channelId, body = Unit)
     }
 
-    override fun getChannelsOnlineNums(channelId: String): OnlineNums {
+    override suspend fun getChannelsOnlineNums(channelId: String): OnlineNums {
         return get(ApiPath.GET_CHANNELS_ONLINE_NUMS, uriVariables = arrayOf(channelId))
     }
 
-    override fun getGuildsMembers(guildId: String, after: String, limit: Int): List<Member> {
+    override suspend fun getGuildsMembers(guildId: String, after: String, limit: Int): List<Member> {
         val l = if (limit < 1 || limit > 400) 1 else limit
         val params = hashMapOf<String, Any>("after" to after, "limit" to l)
         return get(ApiPath.GET_GUILDS_MEMBERS, guildId, params = params)
     }
 
-    override fun getGuildsMember(guildId: String, userId: String): Member {
+    override suspend fun getGuildsMember(guildId: String, userId: String): Member {
         return get(ApiPath.GET_GUILDS_MEMBER, guildId, userId)
     }
 
-    override fun getGuildsMembersRoles(guildId: String, roleId: String, startIndex: String, limit: Int): RolesResp {
+    override suspend fun getGuildsMembersRoles(guildId: String, roleId: String, startIndex: String, limit: Int): RolesResp {
         val l = if (limit < 1 || limit > 400) 1 else limit
         val params = hashMapOf<String, Any>("start_index" to startIndex, "limit" to l)
         return get(ApiPath.GET_GUILDS_MEMBERS_ROLES, guildId, roleId, params = params)
     }
 
-    override fun deleteGuildsMembers(
+    override suspend fun deleteGuildsMembers(
         guildId: String, userId: String, addBlacklist: Boolean, deleteHistoryMsgDays: Int
     ) {
         val d = if (arrayOf(-1, 0, 3, 7, 15, 30).contains(deleteHistoryMsgDays)) deleteHistoryMsgDays else 0
@@ -99,45 +101,49 @@ class StatelessApiRequest(
         return delete(ApiPath.DELETE_GUILDS_MEMBERS, guildId, userId, body = Unit)
     }
 
-    override fun getGuildsRoles(guildId: String): RolesListResp {
+    override suspend fun getGuildsRoles(guildId: String): RolesListResp {
         return get(ApiPath.GET_GUILDS_ROLES, guildId)
     }
 
-    override fun createGuildsRoles(guildId: String, name: String?, color: UInt?, hoist: Int?): CreatedRole {
+    override suspend fun createGuildsRoles(guildId: String, name: String?, color: UInt?, hoist: Int?): CreatedRole {
         val b = hashMapOf<String, Any>().putNotNull("name", name).putNotNull("color", color).putNotNull("hoist", hoist)
         return post(ApiPath.CREATE_GUILDS_ROLES, b, guildId)
     }
 
-    override fun modifyGuildsRoles(
+    override suspend fun modifyGuildsRoles(
         guildId: String, roleId: String, name: String?, color: UInt?, hoist: Int?
     ): ChangedRole {
         val b = hashMapOf<String, Any>().putNotNull("name", name).putNotNull("color", color).putNotNull("hoist", hoist)
         return patch(ApiPath.MODIFY_GUILDS_ROLES, b, guildId, roleId)
     }
 
-    override fun deleteGuildsRoles(guildId: String, roleId: String) {
+    override suspend fun deleteGuildsRoles(guildId: String, roleId: String) {
         return delete(ApiPath.DELETE_GUILDS_ROLES, guildId, roleId, body = Unit)
     }
 
-    override fun addGuildsRolesMembers(guildId: String, userId: String, roleId: String, channel: Channel) {
+    override suspend fun addGuildsRolesMembers(guildId: String, userId: String, roleId: String, channel: Channel) {
         return put(ApiPath.ADD_GUILDS_ROLES_MEMBERS, channel, guildId, userId, roleId)
     }
 
-    override fun deleteGuildsRolesMembers(guildId: String, roleId: String, userId: String, channel: Channel) {
+    override suspend fun deleteGuildsRolesMembers(guildId: String, roleId: String, userId: String, channel: Channel) {
         return delete(ApiPath.DELETE_GUILDS_ROLES_MEMBERS, guildId, roleId, userId, body = channel)
     }
 
-    override fun getChannelsMembersPermissions(channelId: String, userId: String): ChannelPermissions {
+    override suspend fun getChannelsMembersPermissions(channelId: String, userId: String): ChannelPermissions {
         return get(ApiPath.GET_CHANNELS_MEMBERS_PERMISSIONS, channelId, userId)
     }
 
-    @Suppress("DUPLICATES")
-    override fun modifyChannelsMembersPermissions(
+    override suspend fun modifyChannelsMembersPermissions(
         channelId: String,
         userId: String,
         add: UInt?,
         remove: UInt?
     ) {
+        val b = permissionsMap(add, remove)
+        return put(ApiPath.MODIFY_CHANNELS_MEMBERS_PERMISSIONS, b, channelId, userId)
+    }
+
+    private fun permissionsMap(add: UInt?, remove: UInt?): HashMap<String, Any> {
         if (Tools.allNull(add, remove)) {
             throwAtLeastOne()
         }
@@ -153,45 +159,28 @@ class StatelessApiRequest(
         val b = hashMapOf<String, Any>()
         b.putNotNull("add", a)
         b.putNotNull("remove", r)
-        return put(ApiPath.MODIFY_CHANNELS_MEMBERS_PERMISSIONS, b, channelId, userId)
+        return b
     }
 
-    override fun getChannelsRolesPermissions(channelId: String, roleId: String): ChannelPermissions {
+    override suspend fun getChannelsRolesPermissions(channelId: String, roleId: String): ChannelPermissions {
         return get(ApiPath.GET_CHANNELS_ROLES_PERMISSIONS, channelId, roleId)
     }
 
-    @Suppress("DUPLICATES")// anti-duplicate
-    override fun modifyChannelsRolesPermissions(
+    override suspend fun modifyChannelsRolesPermissions(
         channelId: String,
         roleId: String,
         add: UInt?,
         remove: UInt?
     ): ChannelPermissions {
-        if (Tools.allNull(add, remove)) {
-            throwAtLeastOne()
-
-        }
-        val range = UIntRange("1".toUInt(), "15".toUInt())
-        val r = remove?.let {
-            if (range.contains(it)) it
-            else "1".toUInt()
-        }
-        val a = add?.let {
-            if (range.contains(it)) it
-            else "1".toUInt()
-        }
-        val b = hashMapOf<String, Any>()
-        b.putNotNull("add", a)
-        b.putNotNull("remove", r)
+        val b = permissionsMap(add, remove)
         return put(ApiPath.MODIFY_CHANNELS_ROLES_PERMISSIONS, b, channelId, roleId)
     }
 
-    override fun getChannelsMessages(channelId: String, messageId: String): Message {
+    override suspend fun getChannelsMessages(channelId: String, messageId: String): Message {
         return get(ApiPath.GET_CHANNELS_MESSAGES, channelId, messageId)
     }
 
-    @Suppress("DUPLICATES")
-    override fun postChannelsMessages(
+    override suspend fun postChannelsMessages(
         channelId: String,
         content: String?,
         embed: MessageEmbed?,
@@ -204,18 +193,7 @@ class StatelessApiRequest(
         keyboard: MessageKeyboard?,
         fileImage: File?
     ): Message {
-        if (Tools.allNull(content, embed, ark, image, fileImage, markdown)) {
-            throwAtLeastOne()
-        }
-        val body = HashMap<String, Any>()
-        body.putNotNull("content", content)
-        body.putNotNull("embed", embed)
-        body.putNotNull("message_reference", messageReference)
-        body.putNotNull("image", image)
-        body.putNotNull("msg_id", msgId)
-        body.putNotNull("event_id", eventId)
-        body.putNotNull("markdown", markdown)
-        if (markdown != null) body.putNotNull("keyboard", keyboard)
+        val body = messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
         return if (fileImage == null) {
             post(ApiPath.POST_CHANNELS_MESSAGES, body, channelId)
         } else {
@@ -226,7 +204,7 @@ class StatelessApiRequest(
         }
     }
 
-    override fun deleteChannelsMessages(channelId: String, messageId: String, hideTip: Boolean) {
+    override suspend fun deleteChannelsMessages(channelId: String, messageId: String, hideTip: Boolean) {
         return delete(
             ApiPath.DELETE_CHANNELS_MESSAGES,
             channelId,
@@ -236,17 +214,16 @@ class StatelessApiRequest(
         )
     }
 
-    override fun getGuildsMessageSetting(guildId: String): MessageSetting {
+    override suspend fun getGuildsMessageSetting(guildId: String): MessageSetting {
         return get(ApiPath.GET_GUILDS_MESSAGE_SETTING, guildId)
     }
 
-    override fun createUsersDms(recipientId: String, sourceGuildId: String): DirectMessage {
+    override suspend fun createUsersDms(recipientId: String, sourceGuildId: String): DirectMessage {
         val b = hashMapOf("recipient_id" to recipientId, "source_guild_id" to sourceGuildId)
         return post(ApiPath.CREATE_USERS_DMS, body = b)
     }
 
-    @Suppress("DUPLICATES")
-    override fun postDmsMessages(
+    override suspend fun postDmsMessages(
         guildId: String,
         content: String?,
         embed: MessageEmbed?,
@@ -259,6 +236,29 @@ class StatelessApiRequest(
         keyboard: MessageKeyboard?,
         fileImage: File?
     ): Message {
+        val body = messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
+        return if (fileImage == null) {
+            post(ApiPath.POST_CHANNELS_MESSAGES, body, guildId)
+        } else {
+            body.putNotNull("file_image", fileImage.inputStream())
+            val headers = HttpHeaders()
+            headers.contentType = MediaType.MULTIPART_FORM_DATA
+            post(ApiPath.POST_DMS_MESSAGES, body, guildId, headers = headers)
+        }
+    }
+
+    private fun messagesMap(
+        content: String?,
+        embed: MessageEmbed?,
+        ark: MessageArk?,
+        image: String?,
+        fileImage: File?,
+        markdown: MessageMarkdown?,
+        messageReference: MessageReference?,
+        msgId: String?,
+        eventId: String?,
+        keyboard: MessageKeyboard?
+    ): HashMap<String, Any> {
         if (Tools.allNull(content, embed, ark, image, fileImage, markdown)) {
             throwAtLeastOne()
         }
@@ -271,17 +271,10 @@ class StatelessApiRequest(
         body.putNotNull("event_id", eventId)
         body.putNotNull("markdown", markdown)
         if (markdown != null) body.putNotNull("keyboard", keyboard)
-        return if (fileImage == null) {
-            post(ApiPath.POST_CHANNELS_MESSAGES, body, guildId)
-        } else {
-            body.putNotNull("file_image", fileImage.inputStream())
-            val headers = HttpHeaders()
-            headers.contentType = MediaType.MULTIPART_FORM_DATA
-            post(ApiPath.POST_DMS_MESSAGES, body, guildId, headers = headers)
-        }
+        return body
     }
 
-    override fun deleteDmsMessages(guildId: String, messageId: String, hideTip: Boolean) {
+    override suspend fun deleteDmsMessages(guildId: String, messageId: String, hideTip: Boolean) {
         return delete(
             ApiPath.DELETE_DMS_MESSAGES,
             guildId, messageId,
@@ -290,14 +283,14 @@ class StatelessApiRequest(
         )
     }
 
-    override fun setGuildsMute(guildId: String, muteEndTimestamp: LocalDateTime?, muteSeconds: Duration) {
+    override suspend fun setGuildsMute(guildId: String, muteEndTimestamp: LocalDateTime?, muteSeconds: Duration) {
         val b = hashMapOf<String, Any>()
         b.putNotNull("mute_end_timestamp", muteEndTimestamp?.toEpochSecond(ZoneOffset.UTC))
         b.putNotNull("mute_seconds", muteSeconds.seconds)
         return patch(ApiPath.SET_GUILDS_MUTE, b, guildId)
     }
 
-    override fun setGuildsMuteList(
+    override suspend fun setGuildsMuteList(
         guildId: String,
         userIds: List<String>,
         muteEndTimestamp: LocalDateTime?,
@@ -310,7 +303,7 @@ class StatelessApiRequest(
         return patch(ApiPath.SET_GUILDS_MUTE_LIST, b, guildId)
     }
 
-    override fun setGuildsMembersMute(
+    override suspend fun setGuildsMembersMute(
         guildId: String,
         userId: String,
         muteEndTimestamp: LocalDateTime?,
@@ -322,7 +315,7 @@ class StatelessApiRequest(
         return patch(ApiPath.SET_GUILDS_MEMBERS_MUTE, b, guildId, userId)
     }
 
-    override fun createGuildsAnnounces(
+    override suspend fun createGuildsAnnounces(
         guildId: String,
         channelId: String?,
         messageId: String?,
@@ -337,47 +330,47 @@ class StatelessApiRequest(
         return post(ApiPath.CREATE_GUILDS_ANNOUNCES, b, guildId)
     }
 
-    override fun deleteGuildsAnnounces(guildId: String, messageId: String) {
+    override suspend fun deleteGuildsAnnounces(guildId: String, messageId: String) {
         return delete(ApiPath.DELETE_GUILDS_ANNOUNCES, guildId, messageId, body = Unit)
     }
 
-    override fun addChannelsPins(channelId: String, messageId: String): PinsMessage {
+    override suspend fun addChannelsPins(channelId: String, messageId: String): PinsMessage {
         return put(ApiPath.ADD_CHANNELS_PINS, body = Unit, channelId, messageId)
     }
 
-    override fun deleteChannelsPins(channelId: String, messageId: String) {
+    override suspend fun deleteChannelsPins(channelId: String, messageId: String) {
         return delete(ApiPath.DELETE_CHANNELS_PINS, channelId, messageId, body = Unit)
     }
 
-    override fun getChannelsPins(channelId: String): PinsMessage {
+    override suspend fun getChannelsPins(channelId: String): PinsMessage {
         return get(ApiPath.GET_CHANNELS_PINS, channelId)
     }
 
-    override fun getChannelsSchedules(channelId: String, since: LocalDateTime?): List<Schedule> {
+    override suspend fun getChannelsSchedules(channelId: String, since: LocalDateTime?): List<Schedule> {
         val p = hashMapOf<String, Any>()
         p.putNotNull("since", since?.toEpochSecond(ZoneOffset.UTC)?.times(1000))
         return get(ApiPath.GET_CHANNELS_SCHEDULES, channelId, params = p)
     }
 
-    override fun getChannelsSchedule(channelId: String, scheduleId: String): Schedule {
+    override suspend fun getChannelsSchedule(channelId: String, scheduleId: String): Schedule {
         return get(ApiPath.GET_CHANNELS_SCHEDULE, channelId, scheduleId)
     }
 
-    override fun createChannelsSchedules(channelId: String, schedule: Schedule): Schedule {
+    override suspend fun createChannelsSchedules(channelId: String, schedule: Schedule): Schedule {
         val b = hashMapOf("schedule" to schedule)
         return post(ApiPath.CREATE_CHANNELS_SCHEDULES, b, channelId)
     }
 
-    override fun modifyChannelsSchedules(channelId: String, scheduleId: String, schedule: Schedule) {
+    override suspend fun modifyChannelsSchedules(channelId: String, scheduleId: String, schedule: Schedule) {
         val b = hashMapOf("schedule" to schedule)
         return patch(ApiPath.MODIFY_CHANNELS_SCHEDULES, b, channelId, scheduleId)
     }
 
-    override fun deleteChannelsSchedules(channelId: String, scheduleId: String) {
+    override suspend fun deleteChannelsSchedules(channelId: String, scheduleId: String) {
         return delete(ApiPath.DELETE_CHANNELS_SCHEDULES, channelId, scheduleId, body = Unit)
     }
 
-    override fun setChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji) {
+    override suspend fun setChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji) {
         return put(
             ApiPath.SET_CHANNELS_MESSAGES_REACTIONS,
             Unit,
@@ -388,7 +381,7 @@ class StatelessApiRequest(
         )
     }
 
-    override fun deleteChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji) {
+    override suspend fun deleteChannelsMessagesReactions(channelId: String, messageId: String, emoji: Emoji) {
         return delete(
             ApiPath.DELETE_CHANNELS_MESSAGES_REACTIONS,
             channelId,
@@ -399,7 +392,7 @@ class StatelessApiRequest(
         )
     }
 
-    override fun getChannelsMessagesReactions(
+    override suspend fun getChannelsMessagesReactions(
         channelId: String, messageId: String, emoji: Emoji, cookie: String?, limit: Int
     ): ReactionList {
         val l = if (limit < 1 || limit > 50) 20 else limit
@@ -415,27 +408,27 @@ class StatelessApiRequest(
         )
     }
 
-    override fun setChannelsAudio(channelId: String, audioControl: AudioControl) {
+    override suspend fun setChannelsAudio(channelId: String, audioControl: AudioControl) {
         post<AudioControl, Any>(ApiPath.SET_CHANNELS_AUDIO, audioControl, channelId)
     }
 
-    override fun putChannelsMic(channelId: String) {
+    override suspend fun putChannelsMic(channelId: String) {
         put<Unit, Any>(ApiPath.PUT_CHANNELS_MIC, Unit, channelId)
     }
 
-    override fun deleteChannelsMic(channelId: String) {
+    override suspend fun deleteChannelsMic(channelId: String) {
         delete<Unit, Any>(ApiPath.DELETE_CHANNELS_MIC, channelId, body = Unit)
     }
 
-    override fun getChannelsThreads(channelId: String): ThreadsResp {
+    override suspend fun getChannelsThreads(channelId: String): ThreadsResp {
         return get(ApiPath.GET_CHANNELS_THREADS, channelId)
     }
 
-    override fun getChannelsThread(channelId: String, threadId: String): ThreadResp {
+    override suspend fun getChannelsThread(channelId: String, threadId: String): ThreadResp {
         return get(ApiPath.GET_CHANNELS_THREAD, channelId, threadId)
     }
 
-    override fun createChannelsThreads(
+    override suspend fun createChannelsThreads(
         channelId: String,
         title: String,
         content: String,
@@ -446,32 +439,36 @@ class StatelessApiRequest(
     }
 
 
-    override fun deleteChannelsThreads(channelId: String, threadId: String) {
+    override suspend fun deleteChannelsThreads(channelId: String, threadId: String) {
         return delete(ApiPath.DELETE_CHANNELS_THREADS, channelId, threadId, body = Unit)
     }
 
-    override fun getGuildsApiPermission(guildId: String): List<APIPermission> {
+    override suspend fun getGuildsApiPermission(guildId: String): List<APIPermission> {
         return get(ApiPath.GET_GUILDS_API_PERMISSION, guildId)
     }
 
-    override fun createGuildsApiPermissionDemand(
+    override suspend fun createGuildsApiPermissionDemand(
         guildId: String, channelId: String, apiIdentify: APIPermissionDemandIdentify, desc: String
     ): APIPermissionDemand {
         val b = hashMapOf("channel_id" to channelId, "api_identify" to apiIdentify, "desc" to desc)
         return post(ApiPath.CREATE_GUILDS_API_PERMISSION_DEMAND, b, guildId)
     }
 
-    override fun getGateway(): String {
-        return httpRequestPool.runSync {
-            get<Map<String, Any>>(ApiPath.GET_GATEWAY)["url"]?.toString()!!
-        }
+    override suspend fun getGateway(): String {
+        return get<Map<String, Any>>(ApiPath.GET_GATEWAY)["url"]?.toString()!!
+    }
+
+    override suspend fun getGatewayBot(): WebsocketApi {
+        return get(ApiPath.GET_GATEWAY_BOT)
 
     }
 
-    override fun getGatewayBot(): WebsocketApi {
-        return httpRequestPool.runSync {
-            get(ApiPath.GET_GATEWAY_BOT)
-        }
+    override suspend fun postUsersMessage(): Message {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun postGroupsMessage(): Message {
+        TODO("Not yet implemented")
     }
 
     private val defaultUriBuilderFactory = DefaultUriBuilderFactory().apply {
@@ -481,13 +478,13 @@ class StatelessApiRequest(
     private val apiHostString = apiHost
 
 
-    private inline fun <reified T> get(
+    private suspend inline fun <reified T> get(
         path: String, vararg uriVariables: String, params: Map<String, Any>? = null, headers: HttpHeaders? = null
     ): T {
         return noBody(HttpMethod.GET, path, params, object : ParameterizedTypeReference<T>() {}, headers, *uriVariables)
     }
 
-    private inline fun <B, reified T> delete(
+    private suspend inline fun <B, reified T> delete(
         path: String, vararg uriVariables: String,
         body: B, params: Map<String, Any>? = null, headers: HttpHeaders? = null
     ): T {
@@ -496,7 +493,7 @@ class StatelessApiRequest(
         )
     }
 
-    private inline fun <B, reified T> post(
+    private suspend inline fun <B, reified T> post(
         path: String,
         body: B,
         vararg uriVariables: String,
@@ -508,7 +505,7 @@ class StatelessApiRequest(
         )
     }
 
-    private inline fun <B, reified T> patch(
+    private suspend inline fun <B, reified T> patch(
         path: String,
         body: B,
         vararg uriVariables: String,
@@ -520,7 +517,7 @@ class StatelessApiRequest(
         )
     }
 
-    private inline fun <B, reified T> put(
+    private suspend inline fun <B, reified T> put(
         path: String,
         body: B,
         vararg uriVariables: String,
@@ -532,7 +529,7 @@ class StatelessApiRequest(
         )
     }
 
-    private inline fun <reified T> noBody(
+    private suspend inline fun <reified T> noBody(
         method: HttpMethod,
         path: String,
         params: Map<String, Any>? = null,
@@ -540,12 +537,23 @@ class StatelessApiRequest(
         headers: HttpHeaders? = null,
         vararg uriVariables: String
     ): T {
-        val url = "${apiHostString.removeSuffix("/")}${if (path.startsWith('/')) "" else '/'}$path"
-        val builder = UriComponentsBuilder.fromHttpUrl(url)
+        val url = "${apiHostString.removeSuffix("/")}$path"
+        val builder = UriComponentsBuilder.fromUriString(url)
         params?.forEach { (k, v) ->
             builder.queryParam(k, v)
         }
-        return restTemplate.exchange(
+        return withContext(Dispatchers.IO) {
+            WebClient.create(builder.buildAndExpand(*uriVariables).toUriString()).method(method)
+                .headers {
+                    if (headers != null) it.addAll(headers)
+                    if (it[HttpHeaders.AUTHORIZATION] == null) it[HttpHeaders.AUTHORIZATION] = getAuthToken()
+                }.awaitExchange {
+                    it.bodyToMono(responseType).block() ?: throw ApiRequestFailure("")
+                }
+        }
+
+
+        /*return restTemplate.exchange(
             builder.buildAndExpand(*uriVariables).toUri(), method, HttpEntity<Unit>(HttpHeaders().apply {
                 if ((headers?.get(HttpHeaders.AUTHORIZATION)) == null) set(
                     HttpHeaders.AUTHORIZATION, getAuthToken()
@@ -554,10 +562,10 @@ class StatelessApiRequest(
             }), responseType
         ).body.also {
             log.info("Send request: GET {}, response with: {}", path, it)
-        } ?: throw ApiRequestFailure("")
+        } ?: throw ApiRequestFailure("")*/
     }
 
-    private inline fun <B, reified T> withBody(
+    private suspend inline fun <B, reified T> withBody(
         method: HttpMethod,
         path: String,
         params: Map<String, Any>? = null,
@@ -567,11 +575,34 @@ class StatelessApiRequest(
         vararg uriVariables: String
     ): T {
         val url = "${apiHostString.removeSuffix("/")}/${path.removePrefix("/")}"
-        val builder = UriComponentsBuilder.fromHttpUrl(url)
+        val builder = UriComponentsBuilder.fromUriString(url)
         params?.forEach { (k, v) ->
             builder.queryParam(k, v)
         }
-        restTemplate.execute(
+        return withContext(Dispatchers.IO) {
+            WebClient.create(builder.buildAndExpand(*uriVariables).toUriString()).method(method)
+                .headers {
+                    if (headers != null) it.addAll(headers)
+                    if (it[HttpHeaders.AUTHORIZATION] == null) it[HttpHeaders.AUTHORIZATION] = getAuthToken()
+                }.bodyValue(body!!).awaitExchange {
+                    when (it.statusCode()) {
+                        HttpStatus.BAD_REQUEST,
+                        HttpStatus.UNAUTHORIZED,
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        HttpStatus.GATEWAY_TIMEOUT -> {
+                            val errorData = it.bodyToMono(ApiRequestFailure.ErrorData::class.java).block()
+                            throw ApiRequestFailure(errorData?.message, it.statusCode(), errorData)
+                        }
+
+                        else -> {
+                            it.bodyToMono(responseType).block() ?: throw ApiRequestFailure("")
+                        }
+                    }
+                }
+        }
+
+        /*restTemplate.execute(
             builder.buildAndExpand(*uriVariables).toUri(), method,
             restTemplate.httpEntityCallback<T>(HttpEntity(body, HttpHeaders().apply {
                 if ((headers?.get(HttpHeaders.AUTHORIZATION)) == null) set(
@@ -604,7 +635,7 @@ class StatelessApiRequest(
             }), responseType
         ).body.also {
             log.debug("Send request: POST {}, body: {}, response with: {}", path, body, it)
-        } ?: throw ApiRequestFailure("")
+        } ?: throw ApiRequestFailure("")*/
     }
 
 

@@ -16,10 +16,10 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    val springContext = "org.springframework:spring-context:6.1.13"
-    val springWebsocket = "org.springframework:spring-websocket:6.1.13"
-    val springWebmvc = "org.springframework:spring-webmvc:6.1.13"
-    val springWebFlux="org.springframework:spring-webflux:6.1.13"
+    val springContext = "org.springframework:spring-context:6.2.0"
+    val springWebsocket = "org.springframework:spring-websocket:6.2.0"
+    val springWebmvc = "org.springframework:spring-webmvc:6.2.0"
+    val springWebFlux="org.springframework:spring-webflux:6.2.0"
     // https://mvnrepository.com/artifact/org.springframework/spring-context
     testImplementation(springContext)
     compileOnly(springContext)
@@ -27,7 +27,7 @@ dependencies {
     testImplementation(springWebsocket)
     compileOnly(springWebsocket)
     // https://mvnrepository.com/artifact/org.springframework.data/spring-data-jpa
-    implementation("org.springframework.data:spring-data-jpa:3.3.4")
+    implementation("org.springframework.data:spring-data-jpa:3.4.0")
     // https://mvnrepository.com/artifact/org.springframework/spring-webmvc
     testImplementation(springWebmvc)
     compileOnly(springWebmvc)
@@ -37,9 +37,9 @@ dependencies {
 
 
     // https://mvnrepository.com/artifact/org.hibernate.orm/hibernate-core
-    implementation("org.hibernate.orm:hibernate-core:6.6.1.Final")
+    implementation("org.hibernate.orm:hibernate-core:6.6.2.Final")
 
-    implementation("org.springframework.ai:spring-ai-openai:1.0.0-M2") {
+    implementation("org.springframework.ai:spring-ai-openai:1.0.0-M3") {
         exclude("org.springframework.boot", "*")
         exclude("org.springframework.cloud", "*")
         exclude("org.springframework", "")
@@ -53,7 +53,7 @@ dependencies {
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.1")
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
     implementation("org.slf4j:slf4j-api:2.0.16")
     // https://mvnrepository.com/artifact/jakarta.annotation/jakarta.annotation-api

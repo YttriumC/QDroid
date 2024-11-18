@@ -65,8 +65,8 @@ open class ComponentConfiguration(
             messageConverters.add(0, MappingJackson2HttpMessageConverter(objectMapper))
         }
         errorHandler = object : DefaultResponseErrorHandler() {
-            override fun handleError(response: ClientHttpResponse, statusCode: HttpStatusCode) {
-                when (statusCode) {
+            override fun handleError(response: ClientHttpResponse) {
+                when (response.statusCode) {
                     HttpStatus.BAD_REQUEST,
                     HttpStatus.UNAUTHORIZED,
                     HttpStatus.TOO_MANY_REQUESTS,
