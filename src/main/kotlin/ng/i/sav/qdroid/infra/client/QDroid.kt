@@ -12,11 +12,12 @@ import ng.i.sav.qdroid.infra.config.WsClient
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
-import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.socket.*
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import reactor.netty.http.client.HttpClient
-import reactor.netty.http.client.WebsocketClientSpec
 import reactor.netty.http.websocket.WebsocketOutbound
 import java.net.URI
 import java.net.URL
@@ -76,9 +77,12 @@ class QDroid(
     }
 
     enum class State(val state: String) {
-        STANDBY("standby"), HELLO("hello"), AUTHENTICATION_SENT("authentication_sent"), CONNECTED("connected"), RESUME("resume"), SHUTDOWN(
-            "closed"
-        )
+        STANDBY("standby"),
+        HELLO("hello"),
+        AUTHENTICATION_SENT("authentication_sent"),
+        CONNECTED("connected"),
+        RESUME("resume"),
+        SHUTDOWN("closed")
     }
 
     /**
@@ -92,8 +96,12 @@ class QDroid(
                 log.info("get websocket url: {}", gatewayBot.url)
                 log.debug("recommended shards: {}", gatewayBot.shards)
                 HttpClient.create().websocket().uri(wsURL).handle { inbound, outbound ->
-
-                    outbound.sendObject(inbound.receive().asString().flatMap { Mono.just(TextMessage(it)) }.doOnNext { handleMessage(outbound, it) }).neverComplete()
+                     outbound.sendString()
+                    outbound.sendObject(Flux.create<TextMessage> {sink->
+                        inbound.receive().asString().flatMap { Mono.just(TextMessage(it)) }
+                            .doOnNext { handleMessage(sink, it) }.subscribeOn(Schedulers.immediate()).subscribe()
+                    }.flatMap { msg-> }).neverComplete()
+//TODO
                 }.subscribe()
 
                 wsClient.startConnection(this@QDroid, URI(wsURL))
@@ -136,7 +144,7 @@ class QDroid(
 
     }
 
-    private fun helloStage(session:  WebsocketOutbound, message: WebSocketMessage<*>) {
+    private fun helloStage(session: WebsocketOutbound, message: WebSocketMessage<*>) {
         message.toObj<Op10Hello>().let { payload ->
             payload.d?.let { heartbeatTimeoutMillis = it.heartbeatInterval.toLong() }
             payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
@@ -148,7 +156,7 @@ class QDroid(
         }
     }
 
-    private fun  WebsocketOutbound.startHeartbeat() {
+    private fun WebsocketOutbound.startHeartbeat() {
         stopHeartbeat("New connection established")
         heartbeatJob = GlobalScope.launch {
             while (true) {
