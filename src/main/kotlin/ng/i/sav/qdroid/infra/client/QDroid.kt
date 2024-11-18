@@ -4,6 +4,7 @@ package ng.i.sav.qdroid.infra.client
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,12 +14,12 @@ import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.web.socket.*
+import reactor.core.Disposable
 import reactor.core.publisher.Flux
+import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Scheduler
 import reactor.core.scheduler.Schedulers
 import reactor.netty.http.client.HttpClient
-import reactor.netty.http.websocket.WebsocketOutbound
 import java.net.URI
 import java.net.URL
 import java.nio.ByteBuffer
@@ -33,7 +34,6 @@ class QDroid(
     private val appId: String,
     private val token: String,
     private val apiHost: URL,
-    private val wsClient: WsClient,
     private val intents: Int,
     private val totalShards: Int,
     private val json: ObjectMapper,
@@ -47,7 +47,7 @@ class QDroid(
     private var wsMsgSeq = 0
 
     @Volatile
-    private lateinit var session: WebSocketSession
+    private lateinit var wsClientDisposable: Disposable
     private var wsURL: String = ""
     private var heartbeatTimeoutMillis = 40 * 1000L
     private var sessionId = ""
@@ -63,8 +63,6 @@ class QDroid(
             _state = value
             log.debug("QDroid state changed to: {}", _state)
         }
-
-    val webSocketHandler: BotWebSocketHandler = BotWebSocketHandler()
 
     init {
         if (Tools.anyBlank(appId, token)) {
@@ -95,16 +93,39 @@ class QDroid(
             lock.withLock {
                 log.info("get websocket url: {}", gatewayBot.url)
                 log.debug("recommended shards: {}", gatewayBot.shards)
-                HttpClient.create().websocket().uri(wsURL).handle { inbound, outbound ->
-                     outbound.sendString()
-                    outbound.sendObject(Flux.create<TextMessage> {sink->
-                        inbound.receive().asString().flatMap { Mono.just(TextMessage(it)) }
-                            .doOnNext { handleMessage(sink, it) }.subscribeOn(Schedulers.immediate()).subscribe()
-                    }.flatMap { msg-> }).neverComplete()
-//TODO
-                }.subscribe()
+                wsClientDisposable = HttpClient.create().websocket().uri(wsURL).handle { inbound, outbound ->
+                    inbound.receiveCloseStatus().doOnNext {
+                        onReceiveCloseStatus(it.code(), it.reasonText())
+                    }.subscribeOn(Schedulers.immediate()).subscribe()
+                    Flux.create { sink ->
+                        inbound.aggregateFrames().receiveFrames().flatMap {
+                            when (it) {
+                                is TextWebSocketFrame -> {
+                                    Mono.just(it.text())
+                                }
 
-                wsClient.startConnection(this@QDroid, URI(wsURL))
+                                else -> {
+                                    Mono.empty()
+                                }
+                            }
+                        }.doOnNext {
+                            if (it != null)
+                                handleMessage(sink, it)
+                        }.subscribeOn(Schedulers.immediate()).subscribe()
+                    }.flatMap {
+                        when (it) {
+                            is TextMessage -> {
+                                outbound.sendString(Mono.just(it.payload))
+                            }
+
+                            else -> {
+                                outbound.sendObject(it.payload)
+                            }
+                        }
+                    }
+                }.subscribeOn(Schedulers.boundedElastic()).subscribe()
+
+//                wsClient.startConnection(this@QDroid, URI(wsURL))
                 lifecycle.forEach {
                     runCatching { it.onStart(this@QDroid) }.exceptionOrNull()
                         ?.let { log.warn("Lifecycle onStart failed", it) }
@@ -118,24 +139,21 @@ class QDroid(
         log.info("bot start shutting down")
         state = State.SHUTDOWN
         lifecycle.forEach {
-            runCatching { it.onShutdown(this@QDroid) }.exceptionOrNull()?.let { log.warn("Bot difecycle shutdown") }
+            runCatching { it.onShutdown(this@QDroid) }.exceptionOrNull()?.let { log.warn("Bot lifecycle shutdown") }
         }
-        webSocketHandler.close()
+        if (::wsClientDisposable.isInitialized) wsClientDisposable.dispose()
     }
 
     /**
      * All messages' entry
      * */
-    private fun handleMessage(session: WebsocketOutbound, message: WebSocketMessage<*>) {
+    private fun handleMessage(sink: FluxSink<WebSocketMessage<*>>, message: String) {
         when (state) {
-            State.HELLO -> helloStage(session, message)
-            State.AUTHENTICATION_SENT -> authenticationStage(session, message)
-            State.CONNECTED -> when (message) {
-                is TextMessage -> handleTextMsg(session, message)
-                is BinaryMessage -> handleBinMsg(session, message)
-            }
+            State.HELLO -> helloStage(sink, message)
+            State.AUTHENTICATION_SENT -> authenticationStage(sink, message)
+            State.CONNECTED -> handleTextMsg(sink, message)
 
-            State.RESUME -> resumeStage(session, message)
+            State.RESUME -> resumeStage(sink, message)
             State.STANDBY, State.SHUTDOWN -> {
             }/*else -> {
                 // should have done nothing
@@ -144,22 +162,22 @@ class QDroid(
 
     }
 
-    private fun helloStage(session: WebsocketOutbound, message: WebSocketMessage<*>) {
-        message.toObj<Op10Hello>().let { payload ->
+    private fun helloStage(sink: FluxSink<WebSocketMessage<*>>, message: String) {
+        json.readValue(message, object : TypeReference<Payload<Op10Hello>>() {}).let { payload ->
             payload.d?.let { heartbeatTimeoutMillis = it.heartbeatInterval.toLong() }
             payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
-            session.startHeartbeat()
-            session.sendText(
+            sink.startHeartbeat()
+            sink.sendText(
                 OpCode.IDENTIFY, Authentication(getAuthToken(), intents, arrayOf(currentShard, totalShards))
             )
             state = State.AUTHENTICATION_SENT
         }
     }
 
-    private fun WebsocketOutbound.startHeartbeat() {
+    private fun FluxSink<WebSocketMessage<*>>.startHeartbeat() {
         stopHeartbeat("New connection established")
-        heartbeatJob = GlobalScope.launch {
-            while (true) {
+        heartbeatJob = QDroidScope.launch {
+            while (isCancelled.not()) {
                 delay((heartbeatTimeoutMillis - 10_000).coerceAtLeast(10_000))
                 sendText(OpCode.HEARTBEAT)
             }
@@ -174,9 +192,8 @@ class QDroid(
         }
     }
 
-    private fun authenticationStage(session: WebSocketSession, message: WebSocketMessage<*>) {
-        val msg = message.payload.toString()
-        json.readValue(msg, Payload::class.java).let { payload ->
+    private fun authenticationStage(sink: FluxSink<WebSocketMessage<*>>, message: String) {
+        json.readValue(message, Payload::class.java).let { payload ->
             when (payload.op) {
                 OpCode.DISPATCH -> {
                     payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
@@ -217,8 +234,8 @@ class QDroid(
         }
     }
 
-    private fun resumeStage(session: WebSocketSession, message: WebSocketMessage<*>) {
-        message.toObj<Any>().let { payload ->
+    private fun resumeStage(sink: FluxSink<WebSocketMessage<*>>, message: String) {
+        json.readValue(message, object : TypeReference<Payload<*>>() {}).let { payload ->
             when (payload.op) {
                 OpCode.DISPATCH -> {
                     payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
@@ -231,25 +248,25 @@ class QDroid(
                         }
                     }
                     state = State.CONNECTED
-                    session.startHeartbeat()
+                    sink.startHeartbeat()
                 }
 
                 OpCode.RECONNECT, OpCode.INVALID_SESSION -> {
                     state = State.STANDBY
                 }
 
-                OpCode.HELLO -> session.sendText(OpCode.RESUME, Op6Resume(getAuthToken(), sessionId, wsMsgSeq))
+                OpCode.HELLO -> sink.sendText(OpCode.RESUME, Op6Resume(getAuthToken(), sessionId, wsMsgSeq))
                 else -> {}
             }
         }
     }
 
-    private fun handleTextMsg(session: WebSocketSession, msg: TextMessage) {
-        val payload = json.readValue(msg.payload, Payload::class.java)
+    private fun handleTextMsg(sink: FluxSink<WebSocketMessage<*>>, message: String) {
+        val payload = json.readValue(message, Payload::class.java)
         when (payload.op) {
             OpCode.DISPATCH -> {
                 try {
-                    eventDispatcher.onEvent(apiRequest, payload, msg.payload)
+                    eventDispatcher.onEvent(apiRequest, payload, message)
                 } catch (e: Exception) {
                     log.error("Handle message error", e)
                 }
@@ -258,182 +275,100 @@ class QDroid(
             OpCode.RECONNECT -> {
                 state = State.RESUME
                 stopHeartbeat("Resume")
-                log.info("Received RECONNECT: {}", msg.payload)
+                log.info("Received RECONNECT: {}", message)
             }
 
             OpCode.HEARTBEAT_ACK -> {
-                log.debug("Received HEARTBEAT_ACK: {}", msg.payload)
+                log.debug("Received HEARTBEAT_ACK: {}", message)
             }
 
             OpCode.HTTP_CALLBACK_ACK -> TODO()
             else -> {
-                log.info("Received msg: {}", msg.payload)
+                log.info("Received msg: {}", message)
             }
         }
 
     }
 
-    private fun handleBinMsg(session: WebSocketSession, msg: BinaryMessage) {
-        log.info("Binary mag: {}", msg)
+    private fun handleBinMsg(sink: FluxSink<WebSocketMessage<*>>, message: String) {
+        log.info("Binary mag: {}", message)
     }
 
-    inner class BotWebSocketHandler : WebSocketHandler {
-        private var msgList = ArrayList<WebSocketMessage<*>>()
-        private lateinit var session: WebSocketSession
-        override fun afterConnectionEstablished(session: WebSocketSession) {
-            if (state != State.RESUME) state =
-                State.HELLO
-            this.session = session
-            this@QDroid.session = session
-            log.info("Websocket Connection {} is established", session.uri)
-        }
-
-        override fun handleMessage(session: WebSocketSession, message: WebSocketMessage<*>) {
-            if (!message.isLast) {
-                msgList.add(message)
-                return
+    private fun onReceiveCloseStatus(closeStatus: Int, reason: String) {
+        log.info("WS Connection is closed : {}, reason: {}", closeStatus, reason)
+        if (state == State.SHUTDOWN) return
+        stopHeartbeat("Connection closed: $closeStatus")
+        when (closeStatus) {
+            4001 -> log.error("无效的 opcode")
+            4002 -> log.error("无效的 payload")
+            4006 -> {
+                log.error("无效的 session id，无法继续 resume，请 identify")
+                state = State.STANDBY
             }
-            when (message) {
-                // ignore ping/pong message
-                is PingMessage, is PongMessage -> return
-                is TextMessage -> {
-                    msgList.add(message)
-                    StringBuilder(msgList.sumOf { it.payloadLength }).run {
-                        msgList.forEach {
-                            append(it.payload)
-                        }
-                        log.debug("Websocket received TextMessage: {}", this)
-                        this@QDroid.handleMessage(session, TextMessage(this))
-                        msgList.clear()
-                    }
-                }
 
-                is BinaryMessage -> {
-                    ByteBuffer.allocate(msgList.sumOf { it.payloadLength }).run {
-                        msgList.forEach {
-                            it as BinaryMessage
-                            put(it.payload)
-                        }
-                        this@QDroid.handleMessage(session, BinaryMessage(this.asReadOnlyBuffer()))
-                        msgList.clear()
-                    }
-                }
+            4007 -> {
+                log.error("seq 错误")
+                state = State.STANDBY
             }
-        }
 
-        override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
-            state = State.RESUME
-            if (heartbeatJob.isActive) heartbeatJob.cancel("Connection abort", exception)
-            if (msgList.isNotEmpty()) {
-                log.error(
-                    "Last {} message(s) not consumed: {}",
-                    msgList.size,
-                    msgList.joinToString { it.payload.toString() },
-                    exception
-                )
+            4008 -> {
+                log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
+                state = State.RESUME
+                start()
             }
-            throw exception
-        }
 
-        override fun afterConnectionClosed(session: WebSocketSession, closeStatus: CloseStatus) {
-            log.info("WS Connection '{}' is closed : {}", session.uri, closeStatus.code)
-            if (state == State.SHUTDOWN) return
-            stopHeartbeat("Connection closed: $closeStatus")
-            when (closeStatus.code) {
-                4001 -> log.error("无效的 opcode")
-                4002 -> log.error("无效的 payload")
-                4006 -> {
-                    log.error("无效的 session id，无法继续 resume，请 identify")
-                    state = State.STANDBY
-                }
-
-                4007 -> {
-                    log.error("seq 错误")
-                    state = State.STANDBY
-                }
-
-                4008 -> {
-                    log.warn("发送 payload 过快，请重新连接，并遵守连接后返回的频控信息")
-                    state = State.RESUME
-                    wsClient.startConnection(this@QDroid, URI(wsURL))
-                }
-
-                4009 -> {
-                    log.warn("连接过期，请重连并执行 resume 进行重新连接")
-                    state = State.RESUME
-                    wsClient.startConnection(this@QDroid, URI(wsURL))
-                }
-
-                4010 -> {
-                    log.error("无效的 shard")
-                    exitProcess(0)
-                }
-
-                4011 -> {
-                    log.error("连接需要处理的 guild 过多，请进行合理的分片")
-                    exitProcess(0)
-                }
-
-                4012 -> {
-                    log.error("无效的 version")
-                    exitProcess(0)
-                }
-
-                4013 -> {
-                    log.error("无效的 intent")
-                    exitProcess(0)
-                }
-
-                4014 -> {
-                    log.error("intent 无权限")
-                    exitProcess(0)
-                }
-
-                4914 -> {
-                    log.error("机器人已下架,只允许连接沙箱环境,检验当前连接环境")
-                    exitProcess(0)
-                }
-
-                4915 -> {
-                    log.error("机器人已封禁,不允许连接,申请解封后再连接")
-                    exitProcess(0)
-                }
-
-                else -> {
-                    log.warn("内部错误，正在重连")
-                    state = State.STANDBY
-                    start()
-                }
+            4009 -> {
+                log.warn("连接过期，请重连并执行 resume 进行重新连接")
+                state = State.RESUME
+                start()
             }
-        }
 
-        override fun supportsPartialMessages(): Boolean = true
+            4010 -> {
+                log.error("无效的 shard")
+                exitProcess(0)
+            }
 
-        fun close() {
-            state = State.SHUTDOWN
-            stopHeartbeat("Bot shutdown")
-            if (session.isOpen) session.close(CloseStatus.NORMAL)
-            lifecycle.forEach {
-                try {
-                    it.onShutdown(this@QDroid)
-                } catch (e: Exception) {
-                    TODO("Not yet implemented")
-                }
+            4011 -> {
+                log.error("连接需要处理的 guild 过多，请进行合理的分片")
+                exitProcess(0)
+            }
+
+            4012 -> {
+                log.error("无效的 version")
+                exitProcess(0)
+            }
+
+            4013 -> {
+                log.error("无效的 intent")
+                exitProcess(0)
+            }
+
+            4014 -> {
+                log.error("intent 无权限")
+                exitProcess(0)
+            }
+
+            4914 -> {
+                log.error("机器人已下架,只允许连接沙箱环境,检验当前连接环境")
+                exitProcess(0)
+            }
+
+            4915 -> {
+                log.error("机器人已封禁,不允许连接,申请解封后再连接")
+                exitProcess(0)
+            }
+
+            else -> {
+                log.warn("内部错误，正在重连")
+                state = State.STANDBY
+                start()
             }
         }
     }
 
 
-    private inline fun <reified T> Any.toObj(): Payload<T> {
-        return when (this) {
-            is CharSequence -> json.readValue(this.toString(), object : TypeReference<Payload<T>>() {})
-            is TextMessage -> json.readValue(this.payload, object : TypeReference<Payload<T>>() {})
-            else -> json.convertValue(this, object : TypeReference<Payload<T>>() {})
-        }
-    }
-
-    private fun WebSocketSession.sendText(opCode: OpCode, d: Any? = null, t: Event? = null) {
-        this.sendMessage(TextMessage(json.writeValueAsString(Payload.with(opCode, d, wsMsgSeq, t))))
+    private fun FluxSink<WebSocketMessage<*>>.sendText(opCode: OpCode, d: Any? = null, t: Event? = null) {
+        this.next(TextMessage(json.writeValueAsString(Payload.with(opCode, d, wsMsgSeq, t))))
     }
 
     private fun getAuthToken(): String = "Bot $appId.$token"
