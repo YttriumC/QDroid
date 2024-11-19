@@ -3,7 +3,6 @@ package ng.i.sav.qdroid.infra.client
 import com.fasterxml.jackson.databind.ObjectMapper
 import ng.i.sav.qdroid.bot.config.BotConfiguration
 import ng.i.sav.qdroid.infra.config.ComponentConfiguration
-import ng.i.sav.qdroid.infra.config.WsClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.net.URL
@@ -25,7 +24,6 @@ class BotManager(
     private val token: String = configuration.token
 
     private val apiHost: String = configuration.apiHost
-    private val wsClient: WsClient = componentConfiguration.wsClient
     private val intents: Array<Intents> = configuration.intents
     private val objectMapper: ObjectMapper = componentConfiguration.getObjectMapper()
     private val totalShards: Int = configuration.totalShards
@@ -61,7 +59,7 @@ class BotManager(
             log.debug("Create bot with appID: {}, appToken: {}, apiURL: {}, shard: {}", appId, token, apiHost, i)
             QDroid(
                 appId, token, URL(apiHost),
-                wsClient, intents, totalShards,
+                intents, totalShards,
                 objectMapper, lifecycle, eventDispatcher, i, statelessApiRequest
             ).let(
                 botArray::add

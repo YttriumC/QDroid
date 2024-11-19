@@ -1,6 +1,7 @@
 package ng.i.sav.qdroid.infra.client
 
 import jakarta.annotation.PostConstruct
+import kotlinx.coroutines.launch
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.model.event.*
 import ng.i.sav.qdroid.log.Slf4kt
@@ -13,11 +14,13 @@ interface BotEventHandler<T> {
         if (payload.d == null) {
             log.warn("Event {} data is null", payload.t)
         } else
-            @Suppress("UNCHECKED_CAST")
-            onEvent(apiRequest, payload.d as T, payload as Payload<T>)
+            QDroidScope.launch {
+                @Suppress("UNCHECKED_CAST")
+                onEvent(apiRequest, payload.d as T, payload as Payload<T>)
+            }
     }
 
-    fun onEvent(apiRequest: ApiRequest, event: T, payload: Payload<T>)
+    suspend fun onEvent(apiRequest: ApiRequest, event: T, payload: Payload<T>)
 
     @PostConstruct
     fun checkAcceptEvent() {

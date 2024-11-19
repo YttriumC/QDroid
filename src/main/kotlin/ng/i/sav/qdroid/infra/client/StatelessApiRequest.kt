@@ -3,6 +3,7 @@ package ng.i.sav.qdroid.infra.client
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ng.i.sav.qdroid.bot.config.BotConfiguration
+import ng.i.sav.qdroid.bot.event.MessageAuditResultHandler
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
@@ -14,8 +15,6 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitExchange
-import org.springframework.web.util.DefaultUriBuilderFactory
-import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 import java.time.Duration
@@ -203,6 +202,51 @@ class StatelessApiRequest(
             post(ApiPath.POST_CHANNELS_MESSAGES, body, headers = headers, uriVariables = arrayOf(channelId))
         }
     }
+
+    override suspend fun postChannelsMessagesWithAudited(
+        messageAuditResultHandler: MessageAuditResultHandler,
+        channelId: String,
+        content: String?,
+        embed: MessageEmbed?,
+        ark: MessageArk?,
+        messageReference: MessageReference?,
+        image: String?,
+        msgId: String?,
+        eventId: String?,
+        markdown: MessageMarkdown?,
+        keyboard: MessageKeyboard?,
+        fileImage: File?
+    ): Message = runCatching {
+        postChannelsMessages(
+            channelId,
+            content,
+            embed,
+            ark,
+            messageReference,
+            image,
+            msgId,
+            eventId,
+            markdown,
+            keyboard,
+            fileImage
+        )
+    }.getOrElse {
+        if (it is ApiRequestFailure) {
+            if (it.errorData?.code == 304023) {
+                val data = it.errorData.data
+                data as HashMap<*, *>
+                val auditId = (data["message_audit"] as HashMap<*, *>)["audit_id"] as String
+                return@getOrElse messageAuditResultHandler.onAudited(auditId)?.second?.messageId?.let { id ->
+                    getChannelsMessages(
+                        channelId,
+                        id
+                    )
+                } ?: throw it
+            }
+        }
+        throw it
+    }
+
 
     override suspend fun deleteChannelsMessages(channelId: String, messageId: String, hideTip: Boolean) {
         return delete(
@@ -471,12 +515,6 @@ class StatelessApiRequest(
         TODO("Not yet implemented")
     }
 
-    private val defaultUriBuilderFactory = DefaultUriBuilderFactory().apply {
-        encodingMode = EncodingMode.URI_COMPONENT
-    }
-
-    private val apiHostString = apiHost
-
 
     private suspend inline fun <reified T> get(
         path: String, vararg uriVariables: String, params: Map<String, Any>? = null, headers: HttpHeaders? = null
@@ -537,7 +575,7 @@ class StatelessApiRequest(
         headers: HttpHeaders? = null,
         vararg uriVariables: String
     ): T {
-        val url = "${apiHostString.removeSuffix("/")}$path"
+        val url = "${apiHost.removeSuffix("/")}$path"
         val builder = UriComponentsBuilder.fromUriString(url)
         params?.forEach { (k, v) ->
             builder.queryParam(k, v)
@@ -574,7 +612,7 @@ class StatelessApiRequest(
         headers: HttpHeaders? = null,
         vararg uriVariables: String
     ): T {
-        val url = "${apiHostString.removeSuffix("/")}/${path.removePrefix("/")}"
+        val url = "${apiHost.removeSuffix("/")}$path"
         val builder = UriComponentsBuilder.fromUriString(url)
         params?.forEach { (k, v) ->
             builder.queryParam(k, v)

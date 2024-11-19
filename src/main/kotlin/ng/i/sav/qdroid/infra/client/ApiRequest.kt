@@ -1,5 +1,6 @@
 package ng.i.sav.qdroid.infra.client
 
+import ng.i.sav.qdroid.bot.event.MessageAuditResultHandler
 import ng.i.sav.qdroid.infra.model.*
 import java.io.File
 import java.time.Duration
@@ -293,6 +294,22 @@ interface ApiRequest {
      * @return [Message]
      * */
     suspend fun postChannelsMessages(
+        channelId: String,
+        content: String? = null,
+        embed: MessageEmbed? = null,
+        ark: MessageArk? = null,
+        messageReference: MessageReference? = null,
+        image: String? = null,
+        msgId: String? = null,
+        eventId: String? = null,
+        markdown: MessageMarkdown? = null,
+        keyboard: MessageKeyboard? = null,
+        fileImage: File? = null
+    ): Message
+
+
+    suspend fun postChannelsMessagesWithAudited(
+        messageAuditResultHandler: MessageAuditResultHandler,
         channelId: String,
         content: String? = null,
         embed: MessageEmbed? = null,

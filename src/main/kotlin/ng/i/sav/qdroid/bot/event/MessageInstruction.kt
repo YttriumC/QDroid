@@ -6,7 +6,7 @@ import ng.i.sav.qdroid.infra.model.Message
 
 interface MessageInstruction : Named {
     fun getInstructions(): List<String>
-    fun execute(
+    suspend fun execute(
         apiRequest: ApiRequest,
         addInterceptor: (userId: String, interceptExecutor: InterceptExecutor) -> Unit,
         remainContent: String?,

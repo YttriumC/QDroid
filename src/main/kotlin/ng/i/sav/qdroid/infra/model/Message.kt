@@ -2,7 +2,6 @@ package ng.i.sav.qdroid.infra.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import ng.i.sav.qdroid.infra.client.ApiRequest
-import ng.i.sav.qdroid.infra.client.QDroid
 import java.time.LocalDateTime
 
 /**
@@ -61,7 +60,7 @@ data class Message(
     val srcGuildId: String?,
 )
 
-fun Message.sendText(bot: ApiRequest, content: String) {
+suspend fun Message.sendText(bot: ApiRequest, content: String) {
     bot.postChannelsMessages(
         channelId, msgId = id, content = content
     )

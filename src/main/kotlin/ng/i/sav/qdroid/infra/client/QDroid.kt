@@ -1,28 +1,27 @@
-@file:OptIn(DelicateCoroutinesApi::class)
-
 package ng.i.sav.qdroid.infra.client
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import ng.i.sav.qdroid.infra.annotation.Order
-import ng.i.sav.qdroid.infra.config.WsClient
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
 import ng.i.sav.qdroid.log.Slf4kt
-import org.springframework.web.socket.*
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketMessage
 import reactor.core.Disposable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import reactor.netty.http.client.HttpClient
-import java.net.URI
 import java.net.URL
-import java.nio.ByteBuffer
 import kotlin.concurrent.Volatile
 import kotlin.system.exitProcess
 
@@ -61,7 +60,7 @@ class QDroid(
         get() = _state
         private set(value) {
             _state = value
-            log.debug("QDroid state changed to: {}", _state)
+            log.info("QDroid state changed to: {}", _state)
         }
 
     init {
@@ -94,6 +93,8 @@ class QDroid(
                 log.info("get websocket url: {}", gatewayBot.url)
                 log.debug("recommended shards: {}", gatewayBot.shards)
                 wsClientDisposable = HttpClient.create().websocket().uri(wsURL).handle { inbound, outbound ->
+                    if (state != State.RESUME) state =
+                        State.HELLO
                     inbound.receiveCloseStatus().doOnNext {
                         onReceiveCloseStatus(it.code(), it.reasonText())
                     }.subscribeOn(Schedulers.immediate()).subscribe()
@@ -122,18 +123,20 @@ class QDroid(
                                 outbound.sendObject(it.payload)
                             }
                         }
-                    }
-                }.subscribeOn(Schedulers.boundedElastic()).subscribe()
+                    }.subscribeOn(Schedulers.immediate()).subscribe()
+                    outbound.neverComplete()
+                }.subscribeOn(Schedulers.immediate()).subscribe()
 
-//                wsClient.startConnection(this@QDroid, URI(wsURL))
                 lifecycle.forEach {
                     runCatching { it.onStart(this@QDroid) }.exceptionOrNull()
                         ?.let { log.warn("Lifecycle onStart failed", it) }
                 }
                 delay((6_000 / gatewayBot.sessionStartLimit.maxConcurrency).toLong())
             }
+            log.info("QDroid instance started")
         }
     }
+
 
     fun shutdown() {
         log.info("bot start shutting down")
@@ -166,7 +169,6 @@ class QDroid(
         json.readValue(message, object : TypeReference<Payload<Op10Hello>>() {}).let { payload ->
             payload.d?.let { heartbeatTimeoutMillis = it.heartbeatInterval.toLong() }
             payload.s?.let { wsMsgSeq = it.coerceAtLeast(wsMsgSeq) }
-            sink.startHeartbeat()
             sink.sendText(
                 OpCode.IDENTIFY, Authentication(getAuthToken(), intents, arrayOf(currentShard, totalShards))
             )
@@ -210,6 +212,7 @@ class QDroid(
                             )
                         }
                     }
+                    sink.startHeartbeat()
                     state = State.CONNECTED
                     log.debug("state changed to: {}", State.CONNECTED)
                     lifecycle.forEach {

@@ -8,7 +8,6 @@ import org.springframework.util.ResourceUtils
 import java.util.*
 
 @Configuration
-@ComponentScan("ng.i.sav.qdroid.bot")
 open class DefaultBotConfigurer {
 
     /**
@@ -45,3 +44,7 @@ open class DefaultBotConfigurer {
     }
 
 }
+
+@ComponentScan("ng.i.sav.qdroid.bot")
+@Configuration
+open class BotConfigurer : DefaultBotConfigurer()

@@ -59,37 +59,6 @@ open class ComponentConfiguration(
 
     open fun getObjectMapper() = objectMapper
 
-    private val restTemplate = RestTemplate().apply {
-        messageConverters.filterIsInstance<MappingJackson2HttpMessageConverter>().firstOrNull()
-            ?.let { it.objectMapper = objectMapper } ?: run {
-            messageConverters.add(0, MappingJackson2HttpMessageConverter(objectMapper))
-        }
-        errorHandler = object : DefaultResponseErrorHandler() {
-            override fun handleError(response: ClientHttpResponse) {
-                when (response.statusCode) {
-                    HttpStatus.BAD_REQUEST,
-                    HttpStatus.UNAUTHORIZED,
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    HttpStatus.GATEWAY_TIMEOUT -> {
-                        val messageConverterExtractor =
-                            HttpMessageConverterExtractor(ApiRequestFailure.ErrorData::class.java, messageConverters)
-                        val errorData = messageConverterExtractor.extractData(response)
-                        throw ApiRequestFailure(statusCode.toString(), statusCode, errorData)
-                    }
-
-                    else -> {
-                        super.handleError(response, statusCode)
-                    }
-                }
-            }
-        }
-    }
-
-    fun getRestTemplate() = restTemplate
-
-    val wsClient = WsClient(StandardWebSocketClient())
-
     @Bean
     open fun httpRequestPool(): HttpRequestPool {
         return HttpRequestPool(1, threadFactory)

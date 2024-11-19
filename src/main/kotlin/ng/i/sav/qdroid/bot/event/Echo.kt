@@ -6,7 +6,7 @@ import ng.i.sav.qdroid.infra.model.Message
 import ng.i.sav.qdroid.infra.model.Payload
 
 class Echo : AtMessageCreateHandler {
-    override fun onEvent(apiRequest: ApiRequest, event: Message, payload: Payload<Message>) {
+    override suspend fun onEvent(apiRequest: ApiRequest, event: Message, payload: Payload<Message>) {
         println(event.content)
         apiRequest.postChannelsMessages(
             event.channelId,

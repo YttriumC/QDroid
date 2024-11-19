@@ -1,16 +1,18 @@
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import ng.i.sav.qdroid.infra.annotation.EnableQDroid
-import ng.i.sav.qdroid.infra.annotation.UseWeb
+import ng.i.sav.qdroid.infra.annotation.UseWebServer
 import ng.i.sav.qdroid.infra.client.BotManager
 import ng.i.sav.qdroid.infra.persistence.H2Configuration
 import ng.i.sav.qdroid.infra.web.NettyServerInitializer
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext
 import reactor.netty.http.HttpProtocol
+import java.util.concurrent.CountDownLatch
 
 
 @EnableQDroid(H2Configuration::class)
-@UseWeb
+@UseWebServer
 open class Starter {
     fun initSpring(vararg components: Class<*>) = runBlocking {
         log.info("__qdroid__")
@@ -33,14 +35,18 @@ open class Starter {
         Runtime.getRuntime().addShutdownHook(Thread {
             bot.shutdown()
         })
-
+        countDownLatch.await()
     }
-
     private fun listProtocols(): Array<HttpProtocol> {
         return arrayOf(HttpProtocol.HTTP11, HttpProtocol.H2C)
     }
 
     companion object {
         private val log = Slf4kt.getLogger(Starter::class.java)
+        private val countDownLatch=CountDownLatch(1)
+
+        fun shutdown() {
+            countDownLatch.countDown()
+        }
     }
 }

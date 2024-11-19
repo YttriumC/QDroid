@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 class Lottery : MessageInstruction {
     override fun getInstructions(): List<String> = listOf("!彩票", "彩票")
 
-    override fun execute(
+    override suspend fun execute(
         apiRequest: ApiRequest,
         addInterceptor: (userId: String, interceptExecutor: MessageInterceptorManager.InterceptExecutor) -> Unit,
         remainContent: String?,

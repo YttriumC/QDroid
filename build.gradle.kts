@@ -19,7 +19,7 @@ dependencies {
     val springContext = "org.springframework:spring-context:6.2.0"
     val springWebsocket = "org.springframework:spring-websocket:6.2.0"
     val springWebmvc = "org.springframework:spring-webmvc:6.2.0"
-    val springWebFlux="org.springframework:spring-webflux:6.2.0"
+    val springWebFlux = "org.springframework:spring-webflux:6.2.0"
     // https://mvnrepository.com/artifact/org.springframework/spring-context
     testImplementation(springContext)
     compileOnly(springContext)
@@ -58,20 +58,16 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.16")
     // https://mvnrepository.com/artifact/jakarta.annotation/jakarta.annotation-api
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
-//    // https://mvnrepository.com/artifact/io.quarkus/quarkus-websockets-client
-    implementation("io.quarkus:quarkus-websockets-client:3.5.1") {
-        exclude("org.jboss.logging")
-        exclude("org.jboss.slf4j")
-        exclude("org.jboss.logmanager")
-    }
     // https://mvnrepository.com/artifact/io.quarkus.http/quarkus-http-websocket-core
 //    implementation("io.quarkus.http:quarkus-http-websocket-core:5.3.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation("com.h2database:h2:2.3.232")
 
     // https://mvnrepository.com/artifact/io.projectreactor.netty/reactor-netty
-    implementation("io.projectreactor.netty:reactor-netty:1.1.22")
+    implementation("io.projectreactor.netty:reactor-netty:1.2.0")
 
+    // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-reactor
+    runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.jetbrains.kotlin:kotlin-scripting-common")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")

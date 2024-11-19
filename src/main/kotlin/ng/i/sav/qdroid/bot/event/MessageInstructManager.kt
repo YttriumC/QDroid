@@ -19,7 +19,7 @@ class MessageInstructManager(
         messageInstructions.flatMap { it.getInstructions().map { i -> i to it } }
             .groupByTo(mutableMapOf(), { it.first }, { it.second })
     private val instructionSet = executorMap.keys
-    override fun onEvent(apiRequest: ApiRequest, event: Message, payload: Payload<Message>) {
+    override suspend fun onEvent(apiRequest: ApiRequest, event: Message, payload: Payload<Message>) {
         if (messageInterceptorManager.onEvent(apiRequest, payload)) {
             return
         }

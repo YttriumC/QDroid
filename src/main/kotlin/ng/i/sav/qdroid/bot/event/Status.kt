@@ -8,7 +8,7 @@ import java.lang.management.ManagementFactory
 class Status : MessageInstruction {
     override fun getInstructions(): List<String> = listOf("!status", "/status")
 
-    override fun execute(
+    override suspend fun execute(
         apiRequest: ApiRequest,
         addInterceptor: (userId: String, interceptExecutor: MessageInterceptorManager.InterceptExecutor) -> Unit,
         remainContent: String?,
