@@ -7,6 +7,6 @@ import org.slf4j.event.Level
 private val log = Slf4kt.getLogger("BotManagerTestKt")
 fun main() {
 
-    Slf4kt.setLevel(Level.INFO)
+    Slf4kt.setLevel(Level.DEBUG)
     Starter().initSpring(BotConfigurer::class.java, CustomConfig::class.java)
 }

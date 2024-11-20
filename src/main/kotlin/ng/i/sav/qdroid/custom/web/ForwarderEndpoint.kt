@@ -34,19 +34,11 @@ class ForwarderEndpoint(
             return "failed"
         }
         return runCatching {
-            apiRequest.postChannelsMessages(config.channelId, webhookRequest.text).id
+            val message =
+                apiRequest.postChannelsMessagesWithAudited(messageAuditResultHandler, config.channelId, webhookRequest.text)
+            log.info("send message: {}", message)
         }.exceptionOrNull()?.let {
-            if (it is ApiRequestFailure) {
-                if (it.errorData?.code == 304023) {
-                    val data = it.errorData.data
-                    data as HashMap<*, *>
-                    val auditId = (data["message_audit"] as HashMap<*, *>)["audit_id"] as String
-                    log.warn("Message auditing, auditId: {}", auditId)
-                    if (messageAuditResultHandler.onAudited(auditId)?.first == true) {
-                        return "success"
-                    }
-                }
-            }
+            it.printStackTrace()
             "failed"
         } ?: "success"
 

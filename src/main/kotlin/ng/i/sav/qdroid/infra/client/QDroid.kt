@@ -284,7 +284,6 @@ class QDroid(
             OpCode.HEARTBEAT_ACK -> {
                 log.debug("Received HEARTBEAT_ACK: {}", message)
             }
-
             OpCode.HTTP_CALLBACK_ACK -> TODO()
             else -> {
                 log.info("Received msg: {}", message)

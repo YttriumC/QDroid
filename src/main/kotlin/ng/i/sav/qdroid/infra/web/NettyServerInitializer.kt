@@ -37,6 +37,7 @@ open class NettyServerInitializer(@Autowired(required = false) webServerConfigur
     init {
         if (webServerConfigurer == null)
             this.webServerConfigurer = WebServerConfigurer()
+        log.info("use web server")
     }
 
     @Bean
