@@ -1,13 +1,24 @@
 package ng.i.sav.qdroid.infra.util
 
+import com.fasterxml.jackson.annotation.JsonAnySetter
+import com.fasterxml.jackson.annotation.JsonKey
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.KeyDeserializer
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer
 import ng.i.sav.qdroid.log.Slf4kt
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 
 private val log = Slf4kt.getLogger("ng.i.sav.qdroid.infra.util.JsonKt")
 inline fun <reified T> ObjectMapper.toObj(any: Any): T {
@@ -36,3 +47,8 @@ fun ObjectMapper.checkLocalDateTimeFormatter() {
 }
 
 inline fun <reified T> typeRef() = object : TypeReference<T>() {}
+
+
+inline fun <reified T> HashMap<String,T>.extractSingleObject(): T {
+    return this.entries.first().value
+}

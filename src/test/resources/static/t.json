@@ -1,0 +1,20 @@
+{
+  "message": {
+    "id": "08ecbbb68697cafce90810fdb3d7f6011a1231343431313532313837353332303632343020801e28003086c0dd04386c406c48fd90fdb9065800",
+    "channel_id": "517331453",
+    "guild_id": "8241327017491212540",
+    "content": "19999999999\n[Webhook] Congratulations, the sender test is successful, please continue to add forwarding rules!\nSIM1_TestOperator_18888888888\nSubId：0\n2024-11-21 22:49:32",
+    "timestamp": "2024-11-21T22:49:33+08:00",
+    "author": {
+      "id": "10790707967911960176",
+      "username": "qdroid-测试中",
+      "bot": true
+    },
+    "member": {
+      "roles": [
+        "1"
+      ],
+      "joined_at": "2023-10-08T10:05:58+08:00"
+    }
+  }
+}

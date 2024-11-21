@@ -1,11 +1,14 @@
 package ng.i.sav.qdroid.infra.client
 
+import com.fasterxml.jackson.core.type.TypeReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ng.i.sav.qdroid.bot.config.BotConfiguration
 import ng.i.sav.qdroid.bot.event.MessageAuditResultHandler
+import ng.i.sav.qdroid.infra.config.ComponentConfiguration
 import ng.i.sav.qdroid.infra.model.*
 import ng.i.sav.qdroid.infra.util.Tools
+import ng.i.sav.qdroid.infra.util.extractSingleObject
 import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
@@ -23,12 +26,13 @@ import java.time.ZoneOffset
 
 @Component
 class StatelessApiRequest(
-    configuration: BotConfiguration
+    configuration: BotConfiguration,
+    componentConfiguration: ComponentConfiguration
 ) : ApiRequest {
     private val appId: String = configuration.appId
     private val token: String = configuration.token
     private val apiHost: String = configuration.apiHost
-
+    private val json = componentConfiguration.getObjectMapper()
 
     private fun throwAtLeastOne(): Nothing {
         throw IllegalArgumentException("At least one arg needed.")
@@ -86,7 +90,12 @@ class StatelessApiRequest(
         return get(ApiPath.GET_GUILDS_MEMBER, guildId, userId)
     }
 
-    override suspend fun getGuildsMembersRoles(guildId: String, roleId: String, startIndex: String, limit: Int): RolesResp {
+    override suspend fun getGuildsMembersRoles(
+        guildId: String,
+        roleId: String,
+        startIndex: String,
+        limit: Int
+    ): RolesResp {
         val l = if (limit < 1 || limit > 400) 1 else limit
         val params = hashMapOf<String, Any>("start_index" to startIndex, "limit" to l)
         return get(ApiPath.GET_GUILDS_MEMBERS_ROLES, guildId, roleId, params = params)
@@ -176,7 +185,7 @@ class StatelessApiRequest(
     }
 
     override suspend fun getChannelsMessages(channelId: String, messageId: String): Message {
-        return get(ApiPath.GET_CHANNELS_MESSAGES, channelId, messageId)
+        return get<HashMap<String, Message>>(ApiPath.GET_CHANNELS_MESSAGES, channelId, messageId).extractSingleObject()
     }
 
     override suspend fun postChannelsMessages(
@@ -192,7 +201,8 @@ class StatelessApiRequest(
         keyboard: MessageKeyboard?,
         fileImage: File?
     ): Message {
-        val body = messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
+        val body =
+            messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
         return if (fileImage == null) {
             post(ApiPath.POST_CHANNELS_MESSAGES, body, channelId)
         } else {
@@ -280,7 +290,8 @@ class StatelessApiRequest(
         keyboard: MessageKeyboard?,
         fileImage: File?
     ): Message {
-        val body = messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
+        val body =
+            messagesMap(content, embed, ark, image, fileImage, markdown, messageReference, msgId, eventId, keyboard)
         return if (fileImage == null) {
             post(ApiPath.POST_CHANNELS_MESSAGES, body, guildId)
         } else {
@@ -586,7 +597,9 @@ class StatelessApiRequest(
                     if (headers != null) it.addAll(headers)
                     if (it[HttpHeaders.AUTHORIZATION] == null) it[HttpHeaders.AUTHORIZATION] = getAuthToken()
                 }.awaitExchange {
-                    it.bodyToMono(responseType).block() ?: throw ApiRequestFailure("")
+                    it.bodyToMono(String::class.java).log("test only")
+                        .map { json.readValue(it, object : TypeReference<T>() {}) }
+                        .block() ?: throw ApiRequestFailure("Should have body content but no content.")
                 }
         }
 

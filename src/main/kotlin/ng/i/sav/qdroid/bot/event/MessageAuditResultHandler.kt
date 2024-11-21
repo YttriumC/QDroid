@@ -1,6 +1,8 @@
 package ng.i.sav.qdroid.bot.event
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.time.withTimeoutOrNull
 import ng.i.sav.qdroid.infra.client.ApiRequest
@@ -12,10 +14,7 @@ import ng.i.sav.qdroid.log.Slf4kt
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @Component
 class MessageAuditResultHandler : MessageAuditEventHandler {
@@ -24,12 +23,14 @@ class MessageAuditResultHandler : MessageAuditEventHandler {
     private val lock = Mutex() // ensure consume or produce not doing on the same time
     private val auditLogMap = ConcurrentHashMap<String, AuditLog>()
     override suspend fun onEvent(apiRequest: ApiRequest, event: MessageAudited, payload: Payload<MessageAudited>) {
-        log.info("Message: {} audited, result: {}", event.auditId, payload.t)
+        log.info("Message: {} audited, result: {}, content: {}", event.auditId, payload.t, event)
+        println(auditHandler)
         val auditedPair = (payload.t == Event.MESSAGE_AUDIT_PASS) to event
         lock.lock()
-        if (auditHandler.contains(event.auditId)) {
+        if (auditHandler.containsKey(event.auditId)) {
             log.debug("Audit handler found, resolve: {}", event.auditId)
-            auditHandler.remove(event.auditId)?.resume(auditedPair)
+            auditHandler.remove(event.auditId)
+                ?.resume(auditedPair)
             lock.unlock()
             return
         }
@@ -51,7 +52,7 @@ class MessageAuditResultHandler : MessageAuditEventHandler {
 
     suspend fun onAudited(id: String, timeout: Duration = Duration.ofMinutes(1)): Pair<Boolean, MessageAudited>? {
         lock.lock()
-        return auditResults.remove(id).also { lock.unlock() } ?: return withTimeoutOrNull(timeout) {
+        return auditResults.remove(id)?.also { lock.unlock() } ?: return withTimeoutOrNull(timeout) {
             log.debug("onAudited without data")
             return@withTimeoutOrNull suspendCancellableCoroutine {
                 lock.unlock()

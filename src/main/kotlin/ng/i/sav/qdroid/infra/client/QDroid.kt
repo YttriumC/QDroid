@@ -131,9 +131,9 @@ class QDroid(
                     runCatching { it.onStart(this@QDroid) }.exceptionOrNull()
                         ?.let { log.warn("Lifecycle onStart failed", it) }
                 }
+                log.info("QDroid instance started")
                 delay((6_000 / gatewayBot.sessionStartLimit.maxConcurrency).toLong())
             }
-            log.info("QDroid instance started")
         }
     }
 
